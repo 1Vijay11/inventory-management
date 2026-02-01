@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Adding Product{% endblock %}
+
+
+{% block content%}
+<div class="max-w-2xl mx-auto">
+    <h1> Adding Product</h1>
+
+    <form method="post">
+        {% csrf_token %} <!--Django will reject POST requests without this.-->
+        <div class="mb-3">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.sku.label_tag }}
+            {{ form.sku }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.price.label_tag }}
+            {{ form.price }} 
+        </div>
+
+        <div class="mb-3">
+            {{ form.stock_quantity.label_tag }}
+            {{ form.stock_quantity }}
+        </div>
+        <div class="mb-3">
+            {{ form.categories.label_tag }}
+            {{ form.categories }}
+        </div>
+
+        <button type="submit">Save</button>
+    </form>
+</div>
+{% endblock %}

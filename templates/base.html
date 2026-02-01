@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Note we're keeping this out so that it won't get overwritten -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    {% block css_styles %}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous"> {% endblock %}
+    {% block js_scripts %}{% endblock %}
+    <title>
+        {% block title %}Inventory Management System{% endblock %}
+    </title>
+</head>
+
+<body>
+    <!-- ... boilerplate code above ... -->
+    <header>
+        {% block header %}
+        <nav class="bg-gray-800 p-4">
+            <div class="max-w-2xl mx-auto flex justify-between items-center">
+                <!-- Jinja URL used!-->
+                <a href="{% url 'home_page' %}" class="text-white text-lg font-semibold">Home Page</a>
+                <a href="{% url 'product_add' %}" class="text-white text-lg font-semibold">Add Products</a>
+                <a href = "{%  url 'category_create' %}" class="text-white text-lg font-semibold"> add category</a>
+            </div>
+        </nav>
+        {% endblock %}
+    </header>
+    <!-- ... boilerplate code below ... -->
+    <main>
+        {% block content %}{% endblock %}
+
+    </main>
+    <footer>
+        {% block footer %}
+        <p class="text-center text-gray-500">
+            &copy; 2026 JaydenBolton Inventory Managemnt System
+        </p>
+        {% endblock %}
+    </footer>
+</body>
+
+</html>

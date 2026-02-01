@@ -1,0 +1,11 @@
+<h1>
+  {% if product %}Edit{% else %}Add{% endif %} Product
+</h1>
+
+<form method="post">
+  {% csrf_token %} <!--Django will reject POST requests without this.-->
+  {{ form.as_p }} <!-- django automatically looping through the form and creating a nunch of p tags -->
+  <button type="submit">Save</button>
+</form>
+
+<a href="/">Back to inventory</a>
