@@ -5,18 +5,23 @@
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-2">Inventory</h1>
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    SEARCHING LOGIC HERE -->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 
     <form method="get" class="mb-4">
         <input type="hidden" name="sort" value="{{ current_sort }}">
         <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
         <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
 
-        <input type="text" name="search" placeholder="Search by : Name/Sku..." value="{{ request.GET.search }}">
+        <input type="text" name="search" placeholder="Search by : Name..." value="{{ request.GET.search }}">
         <button type="submit">Search</button>
     </form>
     
-
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    HIDE 0 STOCK LOGIC-->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
     <form method="get" class="mb-4">
         <label>
             <input type="hidden" name="search" value="{{ current_search }}">
@@ -32,15 +37,18 @@
     </form>
 
 
-
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    TABLE HEADER LOGIC -->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
     <table class = "table">
         <thead>
             <tr>
+                <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
                 <th scope="col">
                     <form>
                         <input type="hidden" name="search" value="{{ current_search }}">
                         <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
                         <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
 
                         <select name = "sort" id = "sort" onchange="this.form.submit()">
@@ -50,11 +58,12 @@
                         </select>
                     </form>
                 </th>
+                <!-- ||||||||||||||||||||||      SKU        ||||||||||||||||||||||||||| -->
                 <th scope="col">
                     <form>
                         <input type="hidden" name="search" value="{{ current_search }}">
                         <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
                         <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
 
                         <select name = "sort" id = "sort" onchange="this.form.submit()">
@@ -64,11 +73,12 @@
                         </select>
                     </form>
                 </th>
+                <!-- ||||||||||||||||||||||      PRICE        ||||||||||||||||||||||||||| -->
                 <th scope="col">
                     <form>
                         <input type="hidden" name="search" value="{{ current_search }}">
                         <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
                         <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
 
                         <select name = "sort" id = "sort" onchange="this.form.submit()">
@@ -78,27 +88,30 @@
                         </select>
                     </form>
                 </th>
+                <!-- ||||||||||||||||||||||      STOCK        ||||||||||||||||||||||||||| -->
                 <th scope="col">
                     <form>
                         <input type="hidden" name="search" value="{{ current_search }}">
                         <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
                         <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
 
                         <select name = "sort" id = "sort" onchange="this.form.submit()">
                             <option value="">Stock</option>
                             <option {% if current_sort == "stock_quantity" %}selected{% endif %} value="stock_quantity">Stock (L-H)</option>
-                            <option {% if current_sort == "-stock_quantity" %}selected{% endif %} value="-stock_quantity">Stock (H-L) </option>
+                            <option {% if current_sort == "-stock_quantity" %}selected{% endif %} value="-stock_quantity">Stock (H-L) </option>         
                         </select>
                     </form>
                 </th>
+                <!-- ||||||||||||||||||||||      TOTAL VALUE        ||||||||||||||||||||||||||| -->
                 <th scope="col"> Total Value
+                <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
                 </th>
                 <th scope="col">
                     <form>
                         <input type="hidden" name="search" value="{{ current_search }}">
                         <input type="hidden" name="sort" value="{{ current_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ show_zero }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
                         <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
 
                         <select name="category_sort" id="category_sort" onchange="this.form.submit()">
@@ -111,14 +124,46 @@
                 </th>
             </tr>
         </thead>
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    TABLE BODY LOGIC -->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
         <tbody>
             {% for product in products %}
             <tr>
-                <th scope="col"><strong><a href="{% url 'product_edit' pk=product.pk %}">{{ product.name }} </a></strong></th>
+                <th scope="col"><strong><a href="{% url 'product_edit' sku=product.sku %}">{{ product.name }} </a></strong></th>
+
                 <td>{{ product.sku }}</td>
+
                 <td>${{ product.price }}</td>
-                <td>{{ product.stock_quantity }}</td>
+            <!--                 stock buttons logic                 -->
+                <td class="text-center">
+                    <form method="POST" action="{% url 'change_stock' sku=product.sku %}" class="btn-group">
+                        {% csrf_token %}
+                        <input type="hidden" name="search" value="{{ current_search }}">
+                        <input type="hidden" name="sort" value="{{ current_sort }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
+                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
+
+                        <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
+                    </form>
+
+                        <span id="stock-{{ product.sku }}" class="mx-2">
+                        {{ product.stock_quantity }}
+                        </span>
+
+                    <form method="POST" action="{% url 'change_stock' sku=product.sku %}" class="btn-group">
+                        <input type="hidden" name="search" value="{{ current_search }}">
+                        <input type="hidden" name="sort" value="{{ current_sort }}">
+                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
+                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
+
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="add" class="btn btn-sm ">+</button>
+                    </form>
+                </td>
+
                 <td>${{ product.total_value }}</td>
+
                 <td>
                     {% for category in product.categories.all %}
                     {{ category.name }} {% if not forloop.last %} / {% endif %}
@@ -137,6 +182,11 @@
 
 </div>
 
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    JS                  -->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous">
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+</script>
 {% endblock %}

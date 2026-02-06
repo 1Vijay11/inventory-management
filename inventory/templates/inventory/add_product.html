@@ -21,7 +21,7 @@
 
         <div class="mb-3">
             {{ form.price.label_tag }}
-            {{ form.price }} 
+            {{ form.price }}
         </div>
 
         <div class="mb-3">
@@ -33,7 +33,34 @@
             {{ form.categories }}
         </div>
 
-        <button type="submit">Save</button>
+        <button type="submit" class = "bg-green-200">Save</button>
+    </form>
+    <div class="upload.csv mt-6">
+
+        <h2 class="text-xl font-bold mt-6 mb-2">Upload (CSV)</h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="csv_file" accept=".csv" class="border"required>
+
+            <button type="submit" name="upload_csv" class = "bg-green-200">
+                Upload CSV
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="max-w-2xl mx-auto">
+    <h1> Adding category</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %} <!--Django will reject POST requests without this.-->
+        <div class="mb-3">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+        </div>
+        <button type="submit" name="add-category">Save</button>
+
     </form>
 </div>
 {% endblock %}
