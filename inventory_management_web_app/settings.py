@@ -13,6 +13,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 import dj_database_url
+from django.contrib.messages import constants as messages # here to change the mesage tags so bootstrap will work
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -107,6 +109,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+MESSAGE_TAGS = { # here to add errors and bootrap to work properly 
+    messages.ERROR: 'danger',
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

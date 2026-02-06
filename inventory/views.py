@@ -6,7 +6,6 @@ from csv import DictWriter, DictReader
 import csv
 import io
 from django.contrib import messages # usefull when creting errors
-import decimal #used for turning values into devimal instead of float, for the databse
 # Create your views here.
 
 def home_page(request):
@@ -25,7 +24,7 @@ def home_page(request):
     cateogory_sort = request.GET.get('category_sort', "")
     if cateogory_sort :
         products = products.filter(categories__name__iexact=cateogory_sort)
-    
+  
     products = products.order_by(sort_key)
 
     #   zero stock logic
@@ -35,29 +34,24 @@ def home_page(request):
         products = products.filter(stock_quantity__gt=0) # gt = greater than
     
     #   return render
+
     return render( request, 'inventory/main.html', {"products" : products,'categorys' : categorys , 'current_sort': sort_key, 'current_search': search, 'current_category_sort' : cateogory_sort ,'current_show_zero_stock': current_show_zero_stock , 'show_zero': show_zero})
 
 def change_stock(request, sku):
-
-
-
-
-    # FOR LATER PLEASE ADD A CHECK REQUIRMENTS WHERE IT WILL STOP STOCK FROM GOING NEGATIVE
-
-
-
-
-    
+    product = Product.objects.get(sku=sku)
     if request.method == "POST":
         action = request.POST.get("action") # checking the name and returning the value
-        product = Product.objects.get(sku=sku)
         if action == "add" :
             product.stock_quantity += 1
-        elif action == "minus" :
-            product.stock_quantity -= 1
-        product.save()
-
-    return redirect("home_page")
+            messages.success(request, f"{product.name} stock increased")
+        elif product.stock_quantity >= 1:
+            if action == "minus" :
+                product.stock_quantity -= 1
+                messages.success(request, f"{product.name} stock decresed")
+        else :
+            messages.error(request, f"{product.name} stock is already at 0")
+    product.save()
+    return redirect(f"/?{request.GET.urlencode()}") # request.GET.urlencode() simply just gets the past parmaters and saves them as a string, for exmaple" search=&category_sort=&show_zero_stock=&sort=sku"
 
 def create(request):
     products = Product.objects.all() # retuns a list of .all() products inside products table (product.objects)
@@ -68,6 +62,7 @@ def create(request):
         form = ProductForm(request.POST) #reciving data from the form
         if form.is_valid(): # django making sure everything is good with the new info given        
             form.save() # writes and savs to databse 
+            messages.success(request, "Succesfully Added New Product")
             return redirect('home_page') # redirects to whatever url is named inventory_list
     else:
         form = ProductForm() # occurs when form is blank
@@ -77,6 +72,7 @@ def create(request):
         form = CategoryForm(request.POST) #reciving data from the form
         if form.is_valid(): # django making sure everything is good with the new info given
             form.save() # writes and savs to databse 
+            messages.success(request, "Succesfully Added New Category")
             return redirect('home_page') # redirects to whatever url is named inventory_list
         else:
             form = CategoryForm() # occurs when form is blank
@@ -88,20 +84,23 @@ def create(request):
         decoded_file = csv_file.read().decode("utf-8")
         reader = csv.DictReader(io.StringIO(decoded_file))
 
+        rows_skipped = []
+        number_of_rows_skipped = 0
+        number_of_rows_added = 0
+
         for row in reader :
-            sku = row["sku"]
             try :
-                if int(row["price"]) > 0 and int(row["stock"]) :                
+                if int(row["price"]) > 0 and int(row["stock"]) > 0 :                
                     new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
                         #updateOrCreate requires a lookip field and a update field
                         sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
                         defaults={               # FIELDS TO UPDATE- what to update
                             "name": row["name"].strip(),
-                            "price": int(row["price"]),
+                            "price": float(row["price"]),
                             "stock_quantity": int(row["stock"]),
                         }
                     )
-
+                    number_of_rows_added += 1
                     new_product.categories.clear() # simply removes all the categorys of the product so that all new ones can be added
                     category_names = row["category"].split(",")
                     
@@ -115,15 +114,27 @@ def create(request):
                             new_product.categories.add(category)
                 else :
                     if int(row["price"]) < 0 :
-                        print (f'price must be greater then 0 for the row with the sku number : {row["sku"]}')
-                    else :
-                        print (f"stock must be greater then 0 for the row with the sku number : {row["sku"]}")
+                        number_of_rows_skipped += 1
+                        rows_skipped.append(row["sku"])
+
+                    elif int(row["stock"] < 0 ) :
+                        number_of_rows_skipped += 1
+                        rows_skipped.append(row["sku"])
             except Exception as ex:
+                messages.error(request, f"IMPORT FAILED - ERROR : {ex}")
                 print(ex)
                 continue
 
-        return redirect("home_page")
+                # PRINTING error logic 
+        if number_of_rows_added > 0 :
+            messages.success(request, f"Succesfully Updated or Created {number_of_rows_added} Rows")
 
+        if number_of_rows_skipped > 0 :
+            messages.warning(request, f" SKIPPED {number_of_rows_skipped} number of rows : insluded SKU's : {rows_skipped} ")
+
+        return redirect("home_page")
+    
+    #return render
     return render(request, 'inventory/add_product.html', {'form': form})
 
 
