@@ -2,7 +2,7 @@
 
 {% block title %}Inventory{% endblock %}
 
-{% block content %}
+{% block content %} 
 {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
@@ -12,30 +12,41 @@
         {% endfor %}
     </div>
 {% endif %}
+
+<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
+
+<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
+
 <div class="max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-2">Inventory</h1>
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 <!--                    SEARCHING LOGIC HERE -->
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-
     <form method="get" class="mb-4">
-        <input type="hidden" name="sort" value="{{ current_sort }}">
-        <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
+        <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+        <input type="hidden" name="show_zero_stock" value="{{ request.GET.show_zero_stock }}">
+            {% if current_category_sort_list %}
+                {% for category in current_category_sort_list %}
+                    <input type="hidden" name="sort_by_category" value="{{ category }}">
+                {% endfor %}
+            {%endif%}
         <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
 
         <input type="text" name="search" placeholder="Search by : Name..." value="{{ request.GET.search }}">
         <button type="submit">Search</button>
     </form>
-    
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 <!--                    HIDE 0 STOCK LOGIC-->
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
     <form method="get" class="mb-4">
         <label>
-            <input type="hidden" name="search" value="{{ current_search }}">
-            <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-            <input type="hidden" name="sort" value="{{ current_sort }}">
+            <input type="hidden" name="search" value="{{ request.GET.search }}">
+            <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+            {% if current_category_sort_list %}
+                {% for category in current_category_sort_list %}
+                    <input type="hidden" name="sort_by_category" value="{{ category }}">
+                {% endfor %}
+            {%endif%}
             <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
 
             <input type="checkbox" name="show_zero_stock" value="hide_empty_stock" 
@@ -44,94 +55,152 @@
                  Hide out-of-stock items  
         </label>
     </form>
-
-
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 <!--                    TABLE HEADER LOGIC -->
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
     <table class = "table">
-        <thead>
-            <tr>
+        <thead> 
                 <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
-                <th scope="col">
-                    <form>
-                        <input type="hidden" name="search" value="{{ current_search }}">
-                        <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
-                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
-
-                        <select name = "sort" id = "sort" onchange="this.form.submit()">
-                            <option value="name">Name</option>
-                            <option {% if current_sort == "name" %}selected{% endif %} value="name">Name (A–Z) </option>
-                            <option {% if current_sort == "-name" %}selected{% endif %} value="-name">Name (Z-A)</option>
-                        </select>
-                    </form>
-                </th>
+            <th>
+                <div class="dropdown">
+                    <button class=" dropdown-toggle" data-bs-toggle="dropdown">
+                        {% if request.GET.sort == "name" %}Name (A–Z) {% elif request.GET.sort == "-name" %}Name (Z-A) {%else%}Name{%endif%}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=name{% if base_query %}&{{ base_query }}{% endif %}">
+                                Name (A–Z)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=-name{% if base_query %}&{{ base_query }}{% endif %}">
+                                Name (Z-A)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </th>
                 <!-- ||||||||||||||||||||||      SKU        ||||||||||||||||||||||||||| -->
-                <th scope="col">
-                    <form>
-                        <input type="hidden" name="search" value="{{ current_search }}">
-                        <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
-                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
-
-                        <select name = "sort" id = "sort" onchange="this.form.submit()">
-                            <option value="sku">Sku</option>
-                            <option {% if current_sort == "sku" %}selected{% endif %} value="sku">SKU (L-H) </option>
-                            <option {% if current_sort == "-sku" %}selected{% endif %} value="-sku">SKU (H-L) </option>
-                        </select>
-                    </form>
-                </th>
+            <th>
+                <div class="dropdown">
+                    <button class="dropdown-toggle" data-bs-toggle="dropdown">
+                        {% if request.GET.sort == "sku" %}Sku (L-H) {% elif request.GET.sort == "-sku" %}Sku (H-L) {%else%}Sku{%endif%}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                Low–High
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=-sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                High–Low
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </th>
                 <!-- ||||||||||||||||||||||      PRICE        ||||||||||||||||||||||||||| -->
-                <th scope="col">
-                    <form>
-                        <input type="hidden" name="search" value="{{ current_search }}">
-                        <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
-                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
-
-                        <select name = "sort" id = "sort" onchange="this.form.submit()">
-                            <option value="Price">Price</option>
-                            <option {% if current_sort == "price" %}selected{% endif %} value="price"> Price (L-H) </option>
-                            <option {% if current_sort == "-price" %}selected{% endif %} value="-price"> Price (H-L)</option>
-                        </select>
-                    </form>
-                </th>
+            <th>
+                <div class="dropdown">
+                    <button class="dropdown-toggle" data-bs-toggle="dropdown">
+                        {% if request.GET.sort == "price" %}Price (L-H) {% elif request.GET.sort == "-price" %}Price (H-L) {%else%}Price{%endif%}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=price{% if base_query %}&{{ base_query }}{% endif %}">
+                                Low–High
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=-price{% if base_query %}&{{ base_query }}{% endif %}">
+                                High–Low
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </th>
                 <!-- ||||||||||||||||||||||      STOCK        ||||||||||||||||||||||||||| -->
-                <th scope="col">
-                    <form>
-                        <input type="hidden" name="search" value="{{ current_search }}">
-                        <input type="hidden" name="category_sort" value="{{ current_category_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
-                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
-
-                        <select name = "sort" id = "sort" onchange="this.form.submit()">
-                            <option value="stock_quantity">Stock</option>
-                            <option {% if current_sort == "stock_quantity" %}selected{% endif %} value="stock_quantity">Stock (L-H)</option>
-                            <option {% if current_sort == "-stock_quantity" %}selected{% endif %} value="-stock_quantity">Stock (H-L) </option>         
-                        </select>
-                    </form>
-                </th>
+            <th>
+                <div class="dropdown">
+                    <button class="dropdown-toggle" data-bs-toggle="dropdown">
+                        {% if request.GET.sort == "stock_quantity" %}Stock (L-H) {% elif request.GET.sort == "-stock_quantity" %}Stock (H-L) {%else%}Stock{%endif%}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
+                                Low–High
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                            href="?sort=-stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
+                                High–Low
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </th>
                 <!-- ||||||||||||||||||||||      TOTAL VALUE        ||||||||||||||||||||||||||| -->
-                <th scope="col"> Total Value
+            <th>Total Value</th>
                 <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
-                </th>
-                <th scope="col">
-                    <form>
-                        <input type="hidden" name="search" value="{{ current_search }}">
-                        <input type="hidden" name="sort" value="{{ current_sort }}">
-                        <input type="hidden" name="show_zero_stock" value="{{ current_show_zero_stock }}">
-                        <!-- hidden input field here to also pass in current search, so page doesnt refresh and remove it -->
+            <th>
+                <form method="GET">
+                    <!-- preserve other filters -->
+                    <input type="hidden" name="search" value="{{ request.GET.search }}">
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    <input type="hidden" name="show_zero_stock" value="{{ request.GET.show_zero_stock }}">
 
-                        <select name="category_sort" id="category_sort" onchange="this.form.submit()">
-                            <option value="">Categories</option>
+                    <div class="dropdown">
+                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Categories
+                            {% if current_category_sort_list %}
+                                <div class="badge bg-light text-dark ms-1">
+                                    {{ current_category_sort_list|length }}
+                                </div>
+                            {% endif %}
+                        </button>
+
+                        <ul class="dropdown-menu p-3">
+
                             {% for category in categorys %}
-                            <option value ="{{ category }}" {% if current_category_sort == category.name  %}selected{% endif %}>{{category}}</option>
+                                <li>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="sort_by_category"
+                                            value="{{ category.name }}"
+                                            {% if category.name in current_category_sort_list %}
+                                                checked
+                                            {% endif %}
+                                        >
+                                        <label class="form-check-label">
+                                            {{ category.name }}
+                                        </label>
+                                    </div>
+                                </li>
                             {% endfor %}
-                        </select>
-                    </form> 
-                </th>
-            </tr>
+
+                            <li><hr class="dropdown-divider"></li>
+
+                            <li>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Apply
+                                </button>
+                            </li>
+
+                        </ul>
+                    </div>
+                </form>
+            </th>
         </thead>
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 <!--                    TABLE BODY LOGIC -->
@@ -147,6 +216,7 @@
             <!--                 stock buttons logic                 -->
                 <td class="text-center">
                     {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
+                    
                     <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
                         {% csrf_token %}
 
@@ -198,6 +268,6 @@
 
             setTimeout(() => alert.remove(), 500); 
         });
-    }, 6700);  
+    }, 100000);  // change later, however  this long for testing purposes
 </script>
 {% endblock %}

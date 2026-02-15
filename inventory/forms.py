@@ -8,7 +8,7 @@ class ProductForm(forms.ModelForm):
         widgets = {
             'categories': forms.CheckboxSelectMultiple() # just here to make the category select prettier 
         }
-
+ 
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category

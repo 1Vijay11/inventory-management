@@ -7,4 +7,4 @@ urlpatterns = [
     path("add/", create, name="product_add"),
     path("edit/<int:sku>/", product_edit, name="product_edit"),
     path("change_stock/<int:sku>/", change_stock, name="change_stock")
-]
+] 

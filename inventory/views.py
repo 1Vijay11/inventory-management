@@ -6,36 +6,54 @@ from csv import DictWriter, DictReader
 import csv
 import io
 from django.contrib import messages # usefull when creting errors
-# Create your views here.
+# Create your views here. 
 
 def home_page(request):
-    #   Defining tables
+
+    #|||||||||||||| Defining tables ||||||||||||||
     products = Product.objects.all() # retuns a list of .all() products inside products table (product.objects)
     categorys = Category.objects.all()
 
-    #   search logic
+    #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
     if search:
-        products = products.filter(Q(name__icontains=search)) # __icontains is a looking for a case insensitive partial max
+        products = products.filter(Q(name__icontains=search) | Q(sku__contains=search)) # __icontains is a looking for a case insensitive partial max
         # Q is need for any clauses that require multiple arguments -> use of OR
 
-    #   sort Logic
-    sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
-    cateogory_sort = request.GET.get('category_sort', "")
-    if cateogory_sort :
-        products = products.filter(categories__name__iexact=cateogory_sort)
-  
-    products = products.order_by(sort_key)
+    #||||||||||||||   category sort Logic   ||||||||||||||
+    cateogory_sort = request.GET.getlist('sort_by_category', "")
 
-    #   zero stock logic
+    if cateogory_sort :
+        for category in cateogory_sort :
+            products = products.filter(categories__name=category)
+
+
+    #||||||||||||||   zero stock logic   ||||||||||||||
     current_show_zero_stock = request.GET.get('show_zero_stock', "")
     show_zero = current_show_zero_stock == "hide_empty_stock" # returns true or false depnign if eqaution is eqaul
     if show_zero :
         products = products.filter(stock_quantity__gt=0) # gt = greater than
     
-    #   return render
+    #||||||||||||||   sorting logic  ||||||||||||||
+    sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
+    products = products.order_by(sort_key)
 
-    return render( request, 'inventory/main.html', {"products" : products,'categorys' : categorys , 'current_sort': sort_key, 'current_search': search, 'current_category_sort' : cateogory_sort ,'current_show_zero_stock': current_show_zero_stock , 'show_zero': show_zero})
+    # |||||||||||||| defining base query ||||||||||||||
+    #here to stop values from resseting after new from sumbits
+    base_query = request.GET.copy()
+    base_query.pop("sort", None) # gets rid of current sort, so when you add it back to <a> it doesnt duplicate itself
+    base_query_string = base_query.urlencode()
+
+    #\\\\\\\\\\\\\\\\\\\\\\\\\\\\    return render  /////////////////////////////////////////////////
+
+    return render( request, 'inventory/main.html', 
+                  {"products" : products,
+                   'categorys' : categorys ,
+                    'show_zero': show_zero,
+                    "base_query": base_query_string,
+                    "current_sort" : sort_key,
+                    "current_category_sort_list":cateogory_sort
+})
 
 def change_stock(request, sku):
     product = Product.objects.get(sku=sku)
@@ -43,18 +61,16 @@ def change_stock(request, sku):
         action = request.POST.get("action") # checking the name and returning the value
         if action == "add" :
             product.stock_quantity += 1
-            messages.success(request, f"{product.name} stock increased")
         elif product.stock_quantity >= 1:
             if action == "minus" :
                 product.stock_quantity -= 1
-                messages.success(request, f"{product.name} stock decresed")
         else :
             messages.error(request, f"{product.name} stock is already at 0")
     product.save()
     return redirect(f"/?{request.GET.urlencode()}") # request.GET.urlencode() simply just gets the past parmaters and saves them as a string, for exmaple" search=&category_sort=&show_zero_stock=&sort=sku"
 
 def create(request):
-    products = Product.objects.all() # retuns a list of .all() products inside products table (product.objects)
+    products = Product.objects.all() # might use
 
     #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\         add product logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
@@ -88,9 +104,9 @@ def create(request):
         number_of_rows_skipped = 0
         number_of_rows_added = 0
 
-        for row in reader :
+        for row_number, row in enumerate(reader, start=2):  # start=2 accounts for header row  
             try :
-                if int(row["price"]) > 0 and int(row["stock"]) > 0 :                
+                if float(row["price"]) > 0 and int(row["stock"]) > 0 :                
                     new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
                         #updateOrCreate requires a lookip field and a update field
                         sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
@@ -116,21 +132,38 @@ def create(request):
                     if int(row["price"]) < 0 :
                         number_of_rows_skipped += 1
                         rows_skipped.append(row["sku"])
+                        messages.error(
+                            request,
+                            f"Row {row_number}: has an invalid price. Price MUST be greater or eqaul to 0"
+                        )
 
-                    elif int(row["stock"] < 0 ) :
+                    elif int(row["stock"]) < 0  :
                         number_of_rows_skipped += 1
                         rows_skipped.append(row["sku"])
-            except Exception as ex:
-                messages.error(request, f"IMPORT FAILED - ERROR : {ex}")
-                print(ex)
+                        messages.error(
+                            request,
+                            f"Row {row_number}: has an invalid Stock. Stock MUST be greater or eqaul to 0"
+                        )
+            except KeyError as e:
+                messages.error(
+                    request,
+                    f"Row {row_number}: Missing column '{e.args[0]}'. "
+                    f"Required headers: sku, name, price, stock, category"
+                )
+                continue
+            except Exception as e:
+                messages.error(
+                    request,
+                    f"Row {row_number}: Unexpected error — {str(e)}"
+                )
                 continue
 
                 # PRINTING error logic 
         if number_of_rows_added > 0 :
             messages.success(request, f"Succesfully Updated or Created {number_of_rows_added} Rows")
 
-        if number_of_rows_skipped > 0 :
-            messages.warning(request, f" SKIPPED {number_of_rows_skipped} number of rows : insluded SKU's : {rows_skipped} ")
+        if number_of_rows_skipped > 0 :     
+                messages.warning(request, f" SKIPPED {number_of_rows_skipped} rows")
 
         return redirect("home_page")
     
