@@ -33,7 +33,7 @@
             {{ form.categories }}
         </div>
 
-        <button type="submit" class = "bg-green-200">Save</button>
+        <button type="submit" class="bg-green-200">Save</button>
     </form>
     <div class="upload.csv mt-6">
 
@@ -41,9 +41,9 @@
 
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="file" name="csv_file" accept=".csv" class="border"required>
+            <input type="file" name="csv_file" accept=".csv" class="border" required>
 
-            <button type="submit" name="upload_csv" class = "bg-green-200">
+            <button type="submit" name="upload_csv" class="bg-green-200">
                 Upload CSV
             </button>
         </form>
@@ -63,4 +63,5 @@
 
     </form>
 </div>
+
 {% endblock %}

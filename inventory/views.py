@@ -9,10 +9,15 @@ from django.contrib import messages # usefull when creting errors
 # Create your views here. 
 
 def home_page(request):
-
     #|||||||||||||| Defining tables ||||||||||||||
-    products = Product.objects.all() # retuns a list of .all() products inside products table (product.objects)
+    products = Product.objects.all()
     categorys = Category.objects.all()
+    #|||||||||||||| Getting Dirived Values ||||||||||||||
+    total_stock_value = 0
+    total_stock_amount = 0
+    for product in products :
+        total_stock_value += product.total_value
+        total_stock_amount += product.stock_quantity
 
     #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
@@ -30,12 +35,15 @@ def home_page(request):
 
     #||||||||||||||   zero stock logic   ||||||||||||||
     current_show_zero_stock = request.GET.get('show_zero_stock', "")
-    show_zero = current_show_zero_stock == "hide_empty_stock" # returns true or false depnign if eqaution is eqaul
-    if show_zero :
+    show_zero = current_show_zero_stock == "show_empty_stock" # returns true or false depnign if eqaution is eqaul
+    if not show_zero :
         products = products.filter(stock_quantity__gt=0) # gt = greater than
     
     #||||||||||||||   sorting logic  ||||||||||||||
     sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
+    if not sort_key:
+        sort_key = 'name'
+
     products = products.order_by(sort_key)
 
     # |||||||||||||| defining base query ||||||||||||||
@@ -52,7 +60,9 @@ def home_page(request):
                     'show_zero': show_zero,
                     "base_query": base_query_string,
                     "current_sort" : sort_key,
-                    "current_category_sort_list":cateogory_sort
+                    "current_category_sort_list":cateogory_sort,
+                    "total_stock_value" : total_stock_value,
+                    "total_stock_amount" : total_stock_amount,
 })
 
 def change_stock(request, sku):
@@ -71,7 +81,7 @@ def change_stock(request, sku):
 
 def create(request):
     products = Product.objects.all() # might use
-
+    category = Category.objects.all()
     #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\         add product logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
     if request.method == "POST": # form being sumbited 
@@ -168,7 +178,7 @@ def create(request):
         return redirect("home_page")
     
     #return render
-    return render(request, 'inventory/add_product.html', {'form': form})
+    return render(request, 'inventory/add_product.html', {'form': form, "categorys":category})
 
 
 def product_edit(request, sku):

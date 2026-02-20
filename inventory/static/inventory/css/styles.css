@@ -1,0 +1,11 @@
+/* static/css/style.css or your main CSS */
+.table-responsive,
+.card {
+    overflow: visible !important;
+}
+
+.dropdown-menu {
+    z-index: 1050; /* ensures it floats above the table */
+    max-height: 300px; /* optional: scroll if too many categories */
+    overflow-y: auto;  /* vertical scroll for long lists */
+}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, Category
+from .models import Product, Category, SubCategory
 
 # Register your models here.
 @admin.register(Category)
@@ -13,3 +13,6 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ('price', 'stock_quantity')
     filter_horizontal = ('categories',)
 
+@admin.register(SubCategory)
+class SubCategoryAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
