@@ -20,13 +20,13 @@
 
 <body>
     <!-- ... boilerplate code above ... -->
-    <header>
+    <header class="card mb-3">
         {% block header %}
-        <nav class="bg-gray-800 p-4">
-            <div class="max-w-2xl mx-auto flex justify-between items-center">
-                <!-- Jinja URL used!-->
-                <a href="{% url 'home_page' %}" class="text-white text-lg font-semibold">Home Page</a>
-                <a href="{% url 'product_add' %}" class="text-white text-lg font-semibold">Add Products</a>
+        <nav class="navbar bg-body-tertiary">
+                <div class="container-fluid">
+                                <!-- Jinja URL used!-->
+                <a href="{% url 'home_page' %}" class="navbar-brand">Home Page</a>
+                <a href="{% url 'product_add' %}" class="navbar-brand">Add Products</a>
             </div>
         </nav>
         {% endblock %}
@@ -38,7 +38,7 @@
     </main>
     <footer>
         {% block footer %}
-        <p class="text-center text-gray-500">
+        <p class="card-body">
             &copy; 2026 JaydenBolton Inventory Managemnt System
         </p>
         {% endblock %}

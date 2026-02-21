@@ -31,6 +31,11 @@
             {{ form.categories.label_tag }}
             {{ form.categories }}
         </div>
+        <div class="mb-3">
+            SubCategory:
+            {{ form.subCateogry.label_tag }}
+            {{ form.subCategory }}
+        </div>
         <button type="submit" name="action" value="save" class="mb-5 border bg-green-300">Save</button>
         <button type="submit" name="action" value="delete" class="border bg-red-200"
             onclick="return confirm('Are you sure you want to delete this product?');">delete</button>

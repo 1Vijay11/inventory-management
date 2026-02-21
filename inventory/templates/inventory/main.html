@@ -2,75 +2,18 @@
 
 {% block title %}Inventory{% endblock %}
 
-
 {% block content %} 
 
 <div class="container py-4">
-{% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
-                {{ message }}
-            </div>
-        {% endfor %}
-{% endif %}
+    {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+    {% endif %}
 
 <!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
-
-
-<div class="card shadow-sm">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Last</th>
-                    <th scope="col">Handle</th>
-                </tr>
-            </thead>
-            <tbody> <!-- normal row-->
-                <tr>
-                    <th scope="row">1</th>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
-                </tr> 
-                <!-- collaspseble test row 1-->
-                <tr style="cursor: pointer;" 
-                    data-bs-toggle="collapse" 
-                    data-bs-target="#row-one-details" 
-                    aria-expanded="false">
-                    <th scope="row">test expand</th>
-                    <td>test</td>
-                    <td>testses</td>
-                    <td>@mdo</td>
-                </tr>
-                <tr class="collapse collapse-row" id="row-one-details">
-                    <th scope="row">1</th>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
-                </tr>
-                <!-- collaspseble test row 2 -->
-                <tr style="cursor: pointer;" 
-                    data-bs-toggle="collapse" 
-                    data-bs-target="#row-two-details" 
-                    aria-expanded="false">
-                    <th scope="row">test expand</th>
-                    <td>test</td>
-                    <td>testses</td>
-                    <td>@mdo</td>
-                </tr>
-                <tr class="collapse collapse-row" id="row-two-details">
-                    <th scope="row">1</th>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
 <!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
     <div class="mb-4">
         <h1 class="fw-bold">Inventory</h1>
@@ -93,15 +36,13 @@
                         {% endfor %}
                     {%endif%}
                 <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
-
                 <input type="text" name="search" placeholder="Search by : Name..." value="{{ request.GET.search }}">
                 <button type="submit">Search</button>
             </form>
 
-
-        <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-        <!--                    HIDE 0 STOCK LOGIC-->
-        <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+            <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+            <!--                    HIDE 0 STOCK LOGIC-->
+            <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 
             <form method="get" class="mb-4">
                 <label>
@@ -113,7 +54,6 @@
                         {% endfor %}
                     {%endif%}
                     <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
-
                     <input type="checkbox" name="show_zero_stock" value="show_empty_stock" 
                         {% if show_zero %}checked{% endif %} onchange="this.form.submit()">
                         <!-- if checked returns value {show_empty_stock} if not checked returns "" -->
@@ -130,7 +70,7 @@
             <table class = "table table-hover align-middle mb-0">
                 <thead class="table-light"> 
                     <tr>
-                        <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
                                 <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
@@ -146,7 +86,7 @@
                                 </ul>
                             </div>
                         </th>
-                <!-- ||||||||||||||||||||||      SKU        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      SKU        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
                                 <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
@@ -154,21 +94,19 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <a class="dropdown-item" href="?sort=sku{% if base_query %}&{{ base_query }}{% endif %}">
                                             Low–High
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=-sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <a class="dropdown-item" href="?sort=-sku{% if base_query %}&{{ base_query }}{% endif %}">
                                             High–Low
                                         </a>
                                     </li>
                                 </ul>
                             </div>
                         </th>
-                <!-- ||||||||||||||||||||||      PRICE        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      PRICE        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
                                 <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
@@ -176,21 +114,19 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=price{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <a class="dropdown-item" href="?sort=price{% if base_query %}&{{ base_query }}{% endif %}">
                                             Low–High
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=-price{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <a class="dropdown-item" href="?sort=-price{% if base_query %}&{{ base_query }}{% endif %}">
                                             High–Low
                                         </a>
                                     </li>
                                 </ul>
                             </div>
                         </th>
-                <!-- ||||||||||||||||||||||      STOCK        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      STOCK        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
                                 <button class="dropdown-toggle btn" data-bs-toggle="dropdown" data-bs-display="static">
@@ -212,9 +148,9 @@
                                 </ul>
                             </div>
                         </th>
-                <!-- ||||||||||||||||||||||      TOTAL VALUE        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      TOTAL VALUE        ||||||||||||||||||||||||||| -->
                         <th><div class = "btn">Total Value</div></th>
-                <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
+                                <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
                         <th>
                             <form method="GET" class="m-0 p-0">
                                 <!-- preserve other filters -->
@@ -259,43 +195,85 @@
                     </tr>
                 </thead>
         
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-<!--                    TABLE BODY LOGIC -->
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+                <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+                <!--                    TABLE BODY LOGIC -->
+                <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
                 <tbody>
-                    {% for product in products %}
-                        <tr>
-                            <th scope="col"><strong><a href="{% url 'product_edit' sku=product.sku %}" class="fw-semibold text-decoration-none">{{ product.name }} </a></strong></th>
+                        {% for item in combined_products %}
+                            {% if item.type == "product" %}
+                                <tr>
+                                    <th scope="col"><strong><a href="{% url 'product_edit' sku=item.sku %}" class="fw-semibold text-decoration-none">{{ item.name }} </a></strong></th>
+                                    <td>{{ item.sku }}</td>
+                                    <td>${{ item.price }}</td>
+                                <!--                 stock buttons logic                 -->
+                                    <td class="text-center">
+                                        {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}" class="btn-group">
+                                                {% csrf_token %}
+                                                <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
+                                            </form>
+                                                <span id="stock-{{ item.sku }}" class="mx-2">{{ item.stock_quantity }}</span>
+                                            <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}" class="btn-group">
+                                                {% csrf_token %}
+                                                <button type="submit" name="action" value="add" class="btn btn-sm" >+</button>
+                                            </form>
+                                        </div>
+                                        {% endwith %}
+                                    </td>
+                                    <td>${{ item.total_value }}</td>
+                                    <td>
+                                        {% for category in item.categories.all %}
+                                            {{ category.name }} {% if not forloop.last %} / {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% elif item.type == "subcategory" %}
+                                <tr style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#{{ item.sku }}" aria-expanded="false">
+                                    <th scope="row">{{item.name}}</th>
+                                    <td></td>
+                                    <td>${{ item.price }}</td>
+                                    <td>{{ item.stock_quantity }}</td>
+                                    <td>{{ item.total_value }}</td>
+                                    <td></td>
+                                </tr>
+                                {% for product in item.object.products.all %}
+                                {% if product in filtered_sub_category_list%}
+                            <tr class="collapse collapse-row" id="{{ item.sku }}">
+                                        <th scope="col"><strong><a href="{% url 'product_edit' sku=product.sku %}" class="fw-semibold text-decoration-none">{{ product.name }} </a></strong></th>
 
-                            <td>{{ product.sku }}</td>
+                                        <td>{{ product.sku }}</td>
 
-                            <td>${{ product.price }}</td>
-                        <!--                 stock buttons logic                 -->
-                            <td class="text-center">
-                                {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
-                                <div class="d-inline-flex align-items-center gap-2">
-                                    <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
-                                    </form>
-                                        <span id="stock-{{ product.sku }}" class="mx-2">{{ product.stock_quantity }}</span>
-                                    <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
-                                        {% csrf_token %}
-                                        <button type="submit" name="action" value="add" class="btn btn-sm" >+</button>
-                                    </form>
-                                </div>
-                                {% endwith %}
+                                        <td>${{ product.price }}</td>
+                                    <!--                 stock buttons logic                 -->
+                                        <td class="text-center">
+                                            {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
+                                            <div class="d-inline-flex align-items-center gap-2">
+                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
+                                                    {% csrf_token %}
+                                                    <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
+                                                </form>
+                                                    <span id="stock-{{ product.sku }}" class="mx-2">{{ product.stock_quantity }}</span>
+                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
+                                                    {% csrf_token %}
+                                                    <button type="submit" name="action" value="add" class="btn btn-sm" >+</button>
+                                                </form>
+                                            </div>
+                                            {% endwith %}
 
-                            </td>
+                                        </td>
 
-                            <td>${{ product.total_value }}</td>
+                                        <td>${{ product.total_value }}</td>
 
-                            <td>
-                                {% for category in product.categories.all %}
-                                {{ category.name }} {% if not forloop.last %} / {% endif %}
-                                {% endfor %}
-                            </td>
-                        </tr>
+                                        <td>
+                                            {% for category in product.categories.all %}
+                                            {{ category.name }} {% if not forloop.last %} / {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {%endif%}
+                                    {%endfor%}
+                            {%endif%}
                     {%  endfor %}
                 </tbody>
             </table>

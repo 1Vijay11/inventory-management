@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import ProductForm, CategoryForm
-from .models import Product, Category
+from .forms import ProductForm, CategoryForm, SubCategoryForm
+from .models import Product, Category, SubCategory
 from django.db.models import Q # used for adding and/or/not in more advanced wher clauses
 from csv import DictWriter, DictReader
 import csv
@@ -12,6 +12,8 @@ def home_page(request):
     #|||||||||||||| Defining tables ||||||||||||||
     products = Product.objects.all()
     categorys = Category.objects.all()
+    sub_categorys = SubCategory.objects.prefetch_related("products") # better way then doing .all()
+
     #|||||||||||||| Getting Dirived Values ||||||||||||||
     total_stock_value = 0
     total_stock_amount = 0
@@ -39,30 +41,68 @@ def home_page(request):
     if not show_zero :
         products = products.filter(stock_quantity__gt=0) # gt = greater than
     
+        # ||||||||||||||             SUBCATEGORY LOGIC               ||||||||||||||
+    products_with_sub_category = products.filter(subCategory__isnull=False) # seperates products into 2 list 1with and 1 without subcategorys
+    products = products.filter(subCategory__isnull=True)
+
+    combined_products = []
+    for product in products:
+        combined_products.append({
+            "type": "product",
+            "name": product.name,
+            "sku": product.sku,
+            "price": product.price,
+            "stock_quantity": product.stock_quantity,
+            "total_value" : product.total_value,
+            "categories": product.categories,
+            "object" : product 
+        })
+    filtered_sub_categorys = sub_categorys.filter(products__in=products_with_sub_category).distinct() # applyign the filters, distint so there no reapeats *very inportant*
+    for sub in filtered_sub_categorys:          
+            combined_products.append({
+                "type": "subcategory",
+                "name": sub.name,
+                "sku": sub.sku,  # your Min("sku") property
+                "price": sub.price,  # your Min("price")
+                "stock_quantity": sub.total_stock,
+                "total_value" : sub.total_value,
+                "categories": "",
+                "object" : sub 
+            })
+
     #||||||||||||||   sorting logic  ||||||||||||||
     sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
     if not sort_key:
         sort_key = 'name'
+    reverse = False
+    if sort_key.startswith("-"):
+        reverse = True
+        sort_key = sort_key[1:]
 
-    products = products.order_by(sort_key)
-
+    combined_products = sorted(
+        combined_products,
+        key=lambda x: x[sort_key] if x[sort_key] is not None else 0,
+        reverse=reverse
+    )
     # |||||||||||||| defining base query ||||||||||||||
     #here to stop values from resseting after new from sumbits
     base_query = request.GET.copy()
     base_query.pop("sort", None) # gets rid of current sort, so when you add it back to <a> it doesnt duplicate itself
     base_query_string = base_query.urlencode()
-
     #\\\\\\\\\\\\\\\\\\\\\\\\\\\\    return render  /////////////////////////////////////////////////
 
     return render( request, 'inventory/main.html', 
                   {"products" : products,
                    'categorys' : categorys ,
+                   "sub_categorys": sub_categorys,
+                   "filtered_sub_category_list" : products_with_sub_category, # this has a list of all the products that have subcategorys that are also filtered properaly
                     'show_zero': show_zero,
                     "base_query": base_query_string,
                     "current_sort" : sort_key,
                     "current_category_sort_list":cateogory_sort,
                     "total_stock_value" : total_stock_value,
                     "total_stock_amount" : total_stock_amount,
+                    "combined_products" : combined_products
 })
 
 def change_stock(request, sku):
@@ -82,6 +122,7 @@ def change_stock(request, sku):
 def create(request):
     products = Product.objects.all() # might use
     category = Category.objects.all()
+    sub_Category = SubCategory.objects.all()
     #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\         add product logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
     if request.method == "POST": # form being sumbited 
@@ -102,7 +143,15 @@ def create(request):
             return redirect('home_page') # redirects to whatever url is named inventory_list
         else:
             form = CategoryForm() # occurs when form is blank
-
+    # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               add sub Category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    if request.method == "POST" and "add-sub-category" in request.POST :
+        form = SubCategoryForm(request.POST) #reciving data from the form
+        if form.is_valid(): # django making sure everything is good with the new info given
+            form.save() # writes and savs to databse 
+            messages.success(request, "Succesfully Added New Sub Category")
+            return redirect('home_page') # redirects to whatever url is named inventory_list
+        else:
+            form = SubCategoryForm() # occurs when form is blank
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\            uploading csv logic         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     if request.method == "POST" and "upload_csv" in request.POST:
         csv_file = request.FILES.get("csv_file")
@@ -116,7 +165,7 @@ def create(request):
 
         for row_number, row in enumerate(reader, start=2):  # start=2 accounts for header row  
             try :
-                if float(row["price"]) > 0 and int(row["stock"]) > 0 :                
+                if float(row["price"]) >= 0 and int(row["stock"]) >= 0 :                
                     new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
                         #updateOrCreate requires a lookip field and a update field
                         sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
@@ -138,6 +187,16 @@ def create(request):
 
                             category, got_created = Category.objects.get_or_create(name=category_name)# note that created is not used just her for reading purposes, as a tuple is reutnred
                             new_product.categories.add(category)
+                            new_product.save()
+
+                    # sub Category Logic, create or add subcategory
+                    sub_category_name = row["subCategory"]
+                    if sub_category_name:
+                        sub_category_name = sub_category_name.title()
+                        sub_category, created = SubCategory.objects.get_or_create(name=sub_category_name)
+
+                        new_product.subCategory = sub_category
+                        new_product.save()
                 else :
                     if int(row["price"]) < 0 :
                         number_of_rows_skipped += 1
