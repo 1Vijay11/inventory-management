@@ -9,3 +9,643 @@
     max-height: 300px; /* optional: scroll if too many categories */
     overflow-y: auto;  /* vertical scroll for long lists */
 }
+html {
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: italic;
+    color: bisque;
+}
+/* ── Navbar ─────────────────────────────────────── */
+nav.inventory-navbar {
+    background-color: #fdf6f0;
+    border-bottom: 1px solid #f0ddd3;
+    padding: 0.75rem 0;
+    box-shadow: 0 2px 10px rgba(180, 120, 100, 0.07);
+}
+
+nav.inventory-navbar .nav-logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #e8927c, #d4735a);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(212, 115, 90, 0.35);
+}
+
+nav.inventory-navbar .nav-logo-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    letter-spacing: -0.01em;
+}
+
+nav.inventory-navbar .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.42rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+nav.inventory-navbar .nav-btn-active {
+    background-color: #e8927c;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(232, 146, 124, 0.4);
+}
+
+nav.inventory-navbar .nav-btn-active:hover {
+    background-color: #d4735a;
+    color: #ffffff;
+}
+
+nav.inventory-navbar .nav-btn-ghost {
+    background-color: transparent;
+    color: #9e7060;
+    border: 1px solid #f0cfc5;
+}
+
+nav.inventory-navbar .nav-btn-ghost:hover {
+    background-color: #fdf0ed;
+    color: #2c1a0e;
+    border-color: #e8b4a8;
+}
+/* ── Dashboard Header ───────────────────────────── */
+.dashboard-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.2rem;
+}
+
+.dashboard-subtitle {
+    font-size: 0.9rem;
+    color: #9e8878;
+    margin-bottom: 0;
+}
+
+/* ── Stat Cards ─────────────────────────────────── */
+.stat-card {
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Dusty Rose */
+.stat-card--rose {
+    background-color: #fdf0ed;
+    border-color: #f5d5cb;
+}
+
+/* Warm Peach */
+.stat-card--peach {
+    background-color: #fef4e8;
+    border-color: #f7dfc0;
+}
+
+/* Soft Sand */
+.stat-card--sand {
+    background-color: #faf6ef;
+    border-color: #ecdfc8;
+}
+
+.stat-card__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b08070;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.03em;
+}
+
+.stat-card__sub {
+    font-size: 0.78rem;
+    color: #b08070;
+}
+/* ── Filter Bar ─────────────────────────────────── */
+.filter-bar {
+    background-color: #fffaf7;
+    border: 1px solid #f0ddd3;
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 2px 10px rgba(180, 120, 100, 0.06);
+}
+
+.filter-bar__form {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Search input wrapper */
+.filter-bar__search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-bar__search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.filter-bar__input {
+    width: 100%;
+    padding: 0.45rem 0.75rem 0.45rem 2.25rem;
+    border: 1px solid #f0cfc5;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-size: 0.875rem;
+    color: #2c1a0e;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-bar__input:focus {
+    border-color: #e8927c;
+    box-shadow: 0 0 0 3px rgba(232, 146, 124, 0.15);
+}
+
+.filter-bar__input::placeholder {
+    color: #c4a89a;
+}
+
+/* Category dropdown button */
+.filter-bar__btn {
+    background-color: #ffffff;
+    border: 1px solid #f0cfc5;
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #9e7060;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+}
+
+.filter-bar__btn:hover {
+    background-color: #fdf0ed;
+    border-color: #e8b4a8;
+    color: #2c1a0e;
+}
+
+.filter-bar__badge {
+    background-color: #e8927c;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 1px 7px;
+    line-height: 1.4;
+}
+
+/* Dropdown menu */
+.filter-bar__menu {
+    border: 1px solid #f0ddd3;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(180, 120, 100, 0.1);
+    background-color: #fffaf7;
+    min-width: 180px;
+}
+
+.filter-bar__menu .form-check-label {
+    font-size: 0.875rem;
+    color: #2c1a0e;
+    cursor: pointer;
+}
+
+.filter-bar__menu .form-check-input:checked {
+    background-color: #e8927c;
+    border-color: #e8927c;
+}
+
+.filter-bar__apply {
+    background-color: #e8927c;
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.4rem 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.filter-bar__apply:hover {
+    background-color: #d4735a;
+}
+
+/* Zero stock toggle */
+.filter-bar__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.filter-bar__toggle input[type="checkbox"] {
+    display: none;
+}
+
+.filter-bar__toggle-track {
+    width: 36px;
+    height: 20px;
+    background-color: #f0cfc5;
+    border-radius: 20px;
+    position: relative;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.filter-bar__toggle input:checked + .filter-bar__toggle-track {
+    background-color: #e8927c;
+}
+
+.filter-bar__toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.filter-bar__toggle input:checked ~ .filter-bar__toggle-track .filter-bar__toggle-thumb {
+    transform: translateX(16px);
+}
+
+.filter-bar__toggle-label {
+    font-size: 0.85rem;
+    color: #9e7060;
+    font-weight: 500;
+}
+
+/* Search submit button */
+.filter-bar__search-btn {
+    background-color: #e8927c;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    white-space: nowrap;
+}
+
+.filter-bar__search-btn:hover {
+    background-color: #d4735a;
+}
+
+/* ── Table Card ─────────────────────────────────── */
+.table-card {
+    background-color: #fffaf7;
+    border: 1px solid #f0ddd3;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(180, 120, 100, 0.06);
+}
+
+/* ── Table Head ─────────────────────────────────── */
+.table-head tr {
+    background-color: #fdf6f0;
+    border-bottom: 2px solid #f0ddd3;
+}
+
+.table-head th {
+    padding: 0.6rem 0.5rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border: none;
+}
+
+/* ── Header Buttons ─────────────────────────────── */
+.th-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.35rem 0.75rem;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #9e7060;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.th-btn:hover,
+.th-btn.show {
+    background-color: #fdf0ed;
+    border-color: #f0cfc5;
+    color: #2c1a0e;
+}
+
+/* Active sort state */
+.th-btn:has(.th-sort-indicator) {
+    background-color: #fdf0ed;
+    border-color: #e8b4a8;
+    color: #d4735a;
+}
+
+.th-btn--static {
+    cursor: default;
+    pointer-events: none;
+}
+
+.th-btn--static:hover {
+    background-color: transparent;
+    border-color: transparent;
+    color: #9e7060;
+}
+
+.th-sort-indicator {
+    font-size: 0.75rem;
+    color: #e8927c;
+    font-weight: 700;
+}
+
+/* Remove Bootstrap's default caret and replace */
+.th-btn.dropdown-toggle::after {
+    border: none;
+    content: "⌄";
+    font-size: 0.75rem;
+    color: #c4a89a;
+    margin-left: 1px;
+    vertical-align: middle;
+}
+
+/* ── Header Dropdown Menu ───────────────────────── */
+.th-dropdown-menu {
+    border: 1px solid #f0ddd3;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(180, 120, 100, 0.1);
+    background-color: #fffaf7;
+    padding: 0.4rem;
+    min-width: 140px;
+}
+
+.th-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    color: #2c1a0e;
+    padding: 0.4rem 0.65rem;
+    transition: background-color 0.12s ease;
+}
+
+.th-dropdown-item:hover {
+    background-color: #fdf0ed;
+    color: #d4735a;
+}
+
+.th-dropdown-icon {
+    font-size: 0.75rem;
+    color: #e8927c;
+    width: 12px;
+    text-align: center;
+}
+
+/* ── Table Body Rows ────────────────────────────── */
+.table-card .table tbody tr {
+    border-bottom: 1px solid #faeee8;
+    transition: background-color 0.12s ease;
+}
+
+.table-card .table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.table-card .table tbody tr:hover {
+    background-color: #fdf6f2;
+}
+
+.table-card .table tbody td {
+    font-size: 0.875rem;
+    color: #2c1a0e;
+    padding: 0.85rem 1rem;
+    border: none;
+}
+/* ── Product Rows ───────────────────────────────── */
+.product-row td {
+    padding: 0.85rem 1rem;
+    border: none;
+    border-bottom: 1px solid #faeee8;
+    font-size: 0.875rem;
+    color: #2c1a0e;
+    vertical-align: middle;
+}
+
+.product-row:last-child td {
+    border-bottom: none;
+}
+
+.product-row:hover td {
+    background-color: #fdf6f2;
+}
+
+/* ── Product Link ───────────────────────────────── */
+.product-link {
+    font-weight: 600;
+    color: #2c1a0e;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.product-link:hover {
+    color: #e8927c;
+}
+
+.product-link--indented {
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.product-link--indented::before {
+    content: "";
+    position: absolute;
+    left: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 1px;
+    background-color: #e8b4a8;
+}
+
+/* ── SKU Badge ──────────────────────────────────── */
+.sku-badge {
+    display: inline-block;
+    background-color: #fdf0ed;
+    border: 1px solid #f0cfc5;
+    color: #b08070;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: monospace;
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    letter-spacing: 0.04em;
+}
+
+/* ── Price Cell ─────────────────────────────────── */
+.price-cell {
+    font-weight: 500;
+    color: #5a3825;
+}
+/* ── Stock Control ──────────────────────────────── */
+.stock-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.stock-control form {
+    margin: 0;
+    padding: 0;
+}
+
+.stock-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    background-color: transparent;
+    color: #b08070;
+}
+
+.stock-btn:hover {
+    background-color: #fdf0ed;
+    color: #d4735a;
+}
+
+.stock-btn:active {
+    transform: scale(0.88);
+}
+
+.stock-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #2c1a0e;
+    min-width: 32px;
+    text-align: center;
+}
+
+/* ── Category Tags ──────────────────────────────── */
+.category-tag {
+    display: inline-block;
+    background-color: #fef4e8;
+    border: 1px solid #f7dfc0;
+    color: #9e7060;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.18rem 0.55rem;
+    border-radius: 20px;
+    margin-right: 3px;
+}
+
+/* ── Subcategory Row ────────────────────────────── */
+.subcategory-row td {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid #faeee8;
+    background-color: #fdf6f0;
+    vertical-align: middle;
+}
+
+.subcategory-row:hover td {
+    background-color: #faeee6;
+}
+
+.subcategory-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.subcategory-chevron {
+    display: inline-flex;
+    align-items: center;
+    color: #e8927c;
+    transition: transform 0.2s ease;
+}
+
+/* Rotate chevron when expanded */
+.subcategory-row[aria-expanded="true"] .subcategory-chevron {
+    transform: rotate(90deg);
+}
+
+.subcategory-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #5a3825;
+}
+
+/* ── Subcategory Child Rows ─────────────────────── */
+.subcategory-child td {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid #faeee8;
+    background-color: #fffcfa;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: #2c1a0e;
+}
+
+.subcategory-child:hover td {
+    background-color: #fdf6f2;
+}
+/* Center the entire stock column */
+.table-card .table th:nth-child(4),
+.table-card .table td:nth-child(4) {
+    text-align: center;
+}

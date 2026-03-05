@@ -1,0 +1,77 @@
+/* static/css/style.css or your main CSS */
+.table-responsive,
+.card {
+    overflow: visible !important;
+}
+
+.dropdown-menu {
+    z-index: 1050; /* ensures it floats above the table */
+    max-height: 300px; /* optional: scroll if too many categories */
+    overflow-y: auto;  /* vertical scroll for long lists */
+}
+html {
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: italic;
+    color: bisque;
+}
+/* ── Navbar ─────────────────────────────────────── */
+.inventory-navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.75rem 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+}
+
+.nav-logo-icon {
+    width: 36px;
+    height: 36px;
+    background-color: #2ecc71;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-logo-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+}
+
+.nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-btn-active {
+    background-color: #1a1a2e;
+    color: #ffffff;
+}
+
+.nav-btn-active:hover {
+    background-color: #2d2d4e;
+    color: #ffffff;
+}
+
+.nav-btn-ghost {
+    background-color: transparent;
+    color: #555;
+    border: 1px solid #dee2e6;
+}
+
+.nav-btn-ghost:hover {
+    background-color: #f8f9fa;
+    color: #1a1a2e;
+}

@@ -6,39 +6,25 @@
 {% block content%}
 <div class="max-w-2xl mx-auto">
     <h1> Adding Product</h1>
-
-    <form method="post">
-        {% csrf_token %} <!--Django will reject POST requests without this.-->
-        <div class="mb-3">
-            {{ form.name.label_tag }}
-            {{ form.name }}
-        </div>
-
-        <div class="mb-3">
-            {{ form.sku.label_tag }}
-            {{ form.sku }}
-        </div>
-
-        <div class="mb-3">
-            {{ form.price.label_tag }}
-            {{ form.price }}
-        </div>
-
-        <div class="mb-3">
-            {{ form.stock_quantity.label_tag }}
-            {{ form.stock_quantity }}
-        </div>
-        <div class="mb-3">
-            {{ form.categories.label_tag }}
-            {{ form.categories }}
-        </div>
-        <div class="mb-3">
-            SubCategory:
-            {{ form.subCateogry.label_tag }}
-            {{ form.subCategory }}
-        </div>
-
-        <button type="submit" class="bg-green-200">Save</button>
+    </form>
+        <form method="post" class="mt-4">
+        <!-- Add the CSRF token for security -->
+        {% csrf_token %}
+        <!-- Render the form fields -->
+            {% for field in form %}
+            <div>
+            <label for="{{ field.id_for_label }}" class="">
+                {{ field.label }}
+            </label>
+            {{ field }}
+                <div class = "field-error-container">
+                {% if field.errors %}
+                    <p class="field-error">{{ field.errors|striptags }}</p>
+                {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        <button type="submit" class="">Save</button>
     </form>
     <div class="upload.csv mt-6">
 
@@ -77,6 +63,7 @@
             {{ form.name.label_tag }}
             {{ form.name }}
         </div>
+
         <button type="submit" name="add-sub-category">Save</button>
 
     </form>

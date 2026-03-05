@@ -15,266 +15,293 @@
 
 <!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
 <!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
-    <div class="mb-4">
-        <h1 class="fw-bold">Inventory</h1>
-        <div class="text-muted">
-            Total Stock Value: <strong>${{ total_stock_value }}</strong> |
-            Total Stock Amount: <strong>{{ total_stock_amount }}</strong>
+<div class="dashboard-header mb-4">
+    <h1 class="dashboard-title">Inventory</h1>
+    <p class="dashboard-subtitle">Overview of your product inventory</p>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Total Stock Value -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card stat-card--rose">
+            <div class="stat-card__label">Total Stock Value</div>
+            <div class="stat-card__value">${{ total_stock_value }}</div>
+            <div class="stat-card__sub">Current inventory worth</div>
         </div>
     </div>
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-<!--                    SEARCHING LOGIC HERE -->
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-center">
-                <input type="hidden" name="sort" value="{{ request.GET.sort }}">
-                <input type="hidden" name="show_zero_stock" value="{{ request.GET.show_zero_stock }}">
-                    {% if current_category_sort_list %}
-                        {% for category in current_category_sort_list %}
-                            <input type="hidden" name="sort_by_category" value="{{ category }}">
-                        {% endfor %}
-                    {%endif%}
-                <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
-                <input type="text" name="search" placeholder="Search by : Name..." value="{{ request.GET.search }}">
-                <button type="submit">Search</button>
-            </form>
 
-            <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-            <!--                    HIDE 0 STOCK LOGIC-->
-            <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-
-            <form method="get" class="mb-4">
-                <label>
-                    <input type="hidden" name="search" value="{{ request.GET.search }}">
-                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
-                    {% if current_category_sort_list %}
-                        {% for category in current_category_sort_list %}
-                            <input type="hidden" name="sort_by_category" value="{{ category }}">
-                        {% endfor %}
-                    {%endif%}
-                    <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
-                    <input type="checkbox" name="show_zero_stock" value="show_empty_stock" 
-                        {% if show_zero %}checked{% endif %} onchange="this.form.submit()">
-                        <!-- if checked returns value {show_empty_stock} if not checked returns "" -->
-                        Show out-of-stock items  
-                </label>
-            </form>
+    <!-- Total Stock Amount -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card stat-card--peach">
+            <div class="stat-card__label">Total Stock Amount</div>
+            <div class="stat-card__value">{{ total_stock_amount }}</div>
+            <div class="stat-card__sub">Units across all products</div>
         </div>
     </div>
+
+    <!-- Total Items (placeholder) -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card stat-card--sand">
+            <div class="stat-card__label">Total Items</div>
+            <div class="stat-card__value">{{ total_unique_items }}</div>
+            <div class="stat-card__sub">Unique Items across all products </div>
+        </div>
+    </div>
+</div>
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    SEARCHING , 0 STOCK, AND CATEGORY FILTER BAR LOGIC-->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+
+    <div class="filter-bar mb-3">
+        <form method="GET" class="filter-bar__form">
+                        <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
+            <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+
+            <!-- Search Input -->
+            <div class="filter-bar__search">
+                <svg class="filter-bar__search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <circle cx="11" cy="11" r="7" stroke="#b08070" stroke-width="2"/>
+                    <path d="M16.5 16.5L21 21" stroke="#b08070" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input type="text" name="search" class="filter-bar__input"
+                    placeholder="Search by name..." value="{{ request.GET.search }}">
+            </div>
+
+            <!-- Category logic-->
+            <div class="dropdown filter-bar__dropdown">
+                <button class="filter-bar__btn dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                    Categories
+                    {% if current_category_sort_list %}
+                        <span class="filter-bar__badge">{{ current_category_sort_list|length }}</span>
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu filter-bar__menu p-3">
+                    {% for category in categorys %}
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input filter-check" type="checkbox"
+                                    name="sort_by_category" value="{{ category.name }}"
+                                    {% if category.name in current_category_sort_list %}checked{% endif %}>
+                                <label class="form-check-label">{{ category.name }}</label>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button type="submit" class="filter-bar__apply w-100">Apply</button></li>
+                </ul>
+            </div>
+
+            <!-- Show Zero Stock Toggle -->
+            <label class="filter-bar__toggle">
+                <input type="checkbox" name="show_zero_stock" value="show_empty_stock"
+                    {% if show_zero %}checked{% endif %} onchange="this.form.submit()">
+                <span class="filter-bar__toggle-track">
+                    <span class="filter-bar__toggle-thumb"></span>
+                </span>
+                <span class="filter-bar__toggle-label">Show out-of-stock</span>
+            </label>
+
+            <!-- Search Submit (triggered by input or category apply) -->
+            <button type="submit" class="filter-bar__search-btn">Search</button>
+
+        </form>
+    </div>
+
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 <!--                    TABLE HEADER LOGIC -->
 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-     <div class="card shadow-sm">
+
+    <div class="table-card">
         <div class="table-responsive">
             <table class = "table table-hover align-middle mb-0">
-                <thead class="table-light"> 
+                <thead class="table-head">
                     <tr>
                                 <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
-                                <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
-                                    {% if request.GET.sort == "name" %}Name (A–Z) {% elif request.GET.sort == "-name" %}Name (Z-A) {%else%}Name{%endif%}
+                                <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                    Name
+                                    {% if request.GET.sort == "name" %}
+                                        <span class="th-sort-indicator">↑</span>
+                                    {% elif request.GET.sort == "-name" %}
+                                        <span class="th-sort-indicator">↓</span>
+                                    {% endif %}
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=name{% if base_query %}&{{ base_query }}{% endif %}">Name (A–Z)</a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=-name{% if base_query %}&{{ base_query }}{% endif %}"> Name (Z-A)</a>
-                                    </li>
+                                <ul class="dropdown-menu th-dropdown-menu">
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=name{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↑</span> Name (A–Z)
+                                    </a></li>
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=-name{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↓</span> Name (Z–A)
+                                    </a></li>
                                 </ul>
                             </div>
                         </th>
                                 <!-- ||||||||||||||||||||||      SKU        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
-                                <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
-                                    {% if request.GET.sort == "sku" %}Sku (L-H) {% elif request.GET.sort == "-sku" %}Sku (H-L) {%else%}Sku{%endif%}
+                                <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                    SKU
+                                    {% if request.GET.sort == "sku" %}
+                                        <span class="th-sort-indicator">↑</span>
+                                    {% elif request.GET.sort == "-sku" %}
+                                        <span class="th-sort-indicator">↓</span>
+                                    {% endif %}
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=sku{% if base_query %}&{{ base_query }}{% endif %}">
-                                            Low–High
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=-sku{% if base_query %}&{{ base_query }}{% endif %}">
-                                            High–Low
-                                        </a>
-                                    </li>
+                                <ul class="dropdown-menu th-dropdown-menu">
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↑</span> Low–High
+                                    </a></li>
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=-sku{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↓</span> High–Low
+                                    </a></li>
                                 </ul>
                             </div>
                         </th>
                                 <!-- ||||||||||||||||||||||      PRICE        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
-                                <button class="btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
-                                    {% if request.GET.sort == "price" %}Price (L-H) {% elif request.GET.sort == "-price" %}Price (H-L) {%else%}Price{%endif%}
+                                <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                    Price
+                                    {% if request.GET.sort == "price" %}
+                                        <span class="th-sort-indicator">↑</span>
+                                    {% elif request.GET.sort == "-price" %}
+                                        <span class="th-sort-indicator">↓</span>
+                                    {% endif %}
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=price{% if base_query %}&{{ base_query }}{% endif %}">
-                                            Low–High
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=-price{% if base_query %}&{{ base_query }}{% endif %}">
-                                            High–Low
-                                        </a>
-                                    </li>
+                                <ul class="dropdown-menu th-dropdown-menu">
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=price{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↑</span> Low–High
+                                    </a></li>
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=-price{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↓</span> High–Low
+                                    </a></li>
                                 </ul>
                             </div>
                         </th>
                                 <!-- ||||||||||||||||||||||      STOCK        ||||||||||||||||||||||||||| -->
                         <th>
                             <div class="dropdown">
-                                <button class="dropdown-toggle btn" data-bs-toggle="dropdown" data-bs-display="static">
-                                    {% if request.GET.sort == "stock_quantity" %}Stock (L-H) {% elif request.GET.sort == "-stock_quantity" %}Stock (H-L) {%else%}Stock{%endif%}
+                                <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                    Stock
+                                    {% if request.GET.sort == "stock_quantity" %}
+                                        <span class="th-sort-indicator">↑</span>
+                                    {% elif request.GET.sort == "-stock_quantity" %}
+                                        <span class="th-sort-indicator">↓</span>
+                                    {% endif %}
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
-                                            Low–High
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item"
-                                        href="?sort=-stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
-                                            High–Low
-                                        </a>
-                                    </li>
+                                <ul class="dropdown-menu th-dropdown-menu">
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↑</span> Low–High
+                                    </a></li>
+                                    <li><a class="dropdown-item th-dropdown-item" href="?sort=-stock_quantity{% if base_query %}&{{ base_query }}{% endif %}">
+                                        <span class="th-dropdown-icon">↓</span> High–Low
+                                    </a></li>
                                 </ul>
                             </div>
                         </th>
                                 <!-- ||||||||||||||||||||||      TOTAL VALUE        ||||||||||||||||||||||||||| -->
-                        <th><div class = "btn">Total Value</div></th>
+                        <th><div class="th-btn th-btn--static">Total Value</div></th>
                                 <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
-                        <th>
-                            <form method="GET" class="m-0 p-0">
-                                <!-- preserve other filters -->
-                                <input type="hidden" name="search" value="{{ request.GET.search }}">
-                                <input type="hidden" name="sort" value="{{ request.GET.sort }}">
-                                <input type="hidden" name="show_zero_stock" value="{{ request.GET.show_zero_stock }}">
+                        <th><div class="th-btn th-btn--static">Category</div></th>
 
-                                <div class="dropdown">
-                                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-                                        Categories
-                                        {% if current_category_sort_list %}
-                                            <div class="badge bg-light text-dark ms-1">
-                                                {{ current_category_sort_list|length }}
-                                            </div>
-                                        {% endif %}
-                                    </button>
-
-                                    <ul class="dropdown-menu p-3">
-                                        {% for category in categorys %}
-                                            <li>
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox"name="sort_by_category" value="{{ category.name }}"
-                                                        {% if category.name in current_category_sort_list %}
-                                                            checked
-                                                        {% endif %} >
-                                                    <label class="form-check-label">
-                                                        {{ category.name }}
-                                                    </label>
-                                                </div>
-                                            </li>
-                                        {% endfor %}
-
-                                        <li><hr class="dropdown-divider"></li>
-
-                                        <li>
-                                            <button type="submit" class="btn btn-primary w-100" >Apply</button>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </form>
-                        </th>
                     </tr>
                 </thead>
         
                 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
                 <!--                    TABLE BODY LOGIC -->
                 <!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+
                 <tbody>
-                        {% for item in combined_products %}
-                            {% if item.type == "product" %}
-                                <tr>
-                                    <th scope="col"><strong><a href="{% url 'product_edit' sku=item.sku %}" class="fw-semibold text-decoration-none">{{ item.name }} </a></strong></th>
-                                    <td>{{ item.sku }}</td>
-                                    <td>${{ item.price }}</td>
-                                <!--                 stock buttons logic                 -->
-                                    <td class="text-center">
-                                        {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
-                                        <div class="d-inline-flex align-items-center gap-2">
-                                            <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}" class="btn-group">
-                                                {% csrf_token %}
-                                                <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
-                                            </form>
-                                                <span id="stock-{{ item.sku }}" class="mx-2">{{ item.stock_quantity }}</span>
-                                            <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}" class="btn-group">
-                                                {% csrf_token %}
-                                                <button type="submit" name="action" value="add" class="btn btn-sm" >+</button>
-                                            </form>
-                                        </div>
-                                        {% endwith %}
-                                    </td>
-                                    <td>${{ item.total_value }}</td>
-                                    <td>
-                                        {% for category in item.categories.all %}
-                                            {{ category.name }} {% if not forloop.last %} / {% endif %}
-                                        {% endfor %}
-                                    </td>
-                                </tr>
-                            {% elif item.type == "subcategory" %}
-                                <tr style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#{{ item.sku }}" aria-expanded="false">
-                                    <th scope="row">{{item.name}}</th>
-                                    <td></td>
-                                    <td>${{ item.price }}</td>
-                                    <td>{{ item.stock_quantity }}</td>
-                                    <td>{{ item.total_value }}</td>
-                                    <td></td>
-                                </tr>
-                                {% for product in item.object.products.all %}
-                                {% if product in filtered_sub_category_list%}
-                            <tr class="collapse collapse-row" id="{{ item.sku }}">
-                                        <th scope="col"><strong><a href="{% url 'product_edit' sku=product.sku %}" class="fw-semibold text-decoration-none">{{ product.name }} </a></strong></th>
+                    {% for item in combined_products %}
+                        {% if item.type == "product" %}
+                            <tr class="product-row">
+                                <td>
+                                    <a href="{% url 'product_edit' sku=item.sku %}" class="product-link">{{ item.name }}</a>
+                                </td>
+                                <td><span class="sku-badge">{{ item.sku }}</span></td>
+                                <td class="price-cell">${{ item.price }}</td>
+                                <td>
+                                    {% with request.GET.urlencode as UrlParameters %}
+                                    <div class="stock-control">
+                                        <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="minus" class="stock-btn stock-btn--minus">−</button>
+                                        </form>
+                                            <span class="stock-value">{{ item.stock_quantity }}</span>
+                                        <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="add" class="stock-btn stock-btn--add">+</button>
+                                        </form>
+                                    </div>
+                                    {% endwith %}
+                                </td>
+                                <td class="price-cell">${{ item.total_value }}</td>
+                                <td>
+                                    {% for category in item.categories.all %}
+                                        <span class="category-tag">{{ category.name }}</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
 
-                                        <td>{{ product.sku }}</td>
+                        {% elif item.type == "subcategory" %}
+                            <!-- Subcategory parent row -->
+                            <tr class="subcategory-row" style="cursor: pointer;"
+                                data-bs-toggle="collapse" data-bs-target="#{{ item.sku }}"
+                                aria-expanded="false">
+                                <td colspan="1">
+                                    <div class="subcategory-label">
+                                        <span class="subcategory-chevron">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                        <span class="subcategory-name">{{ item.name }}</span>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td class="price-cell">${{ item.price }}</td>
+                                <td><span class="stock-value">{{ item.stock_quantity }}</span></td>
+                                <td class="price-cell">${{ item.total_value }}</td>
+                                <td></td>
+                            </tr>
 
-                                        <td>${{ product.price }}</td>
-                                    <!--                 stock buttons logic                 -->
-                                        <td class="text-center">
-                                            {% with request.GET.urlencode as UrlParameters %} <!-- saves the current paramter, like sort and saves them as UrlParameters-->
-                                            <div class="d-inline-flex align-items-center gap-2">
-                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
+                            <!-- Subcategory child rows -->
+                            {% for product in item.object.products.all %}
+                                {% if product in filtered_sub_category_list %}
+                                    <tr class="collapse collapse-row subcategory-child" id="{{ item.sku }}">
+                                        <td>
+                                            <a href="{% url 'product_edit' sku=product.sku %}" class="product-link product-link--indented">{{ product.name }}</a>
+                                        </td>
+                                        <td><span class="sku-badge">{{ product.sku }}</span></td>
+                                        <td class="price-cell">${{ product.price }}</td>
+                                        <td>
+                                            {% with request.GET.urlencode as UrlParameters %}
+                                            <div class="stock-control">
+                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}">
                                                     {% csrf_token %}
-                                                    <button type="submit" name="action" value="minus" class="btn btn-sm ">−</button>
+                                                    <button type="submit" name="action" value="minus" class="stock-btn stock-btn--minus">−</button>
                                                 </form>
-                                                    <span id="stock-{{ product.sku }}" class="mx-2">{{ product.stock_quantity }}</span>
-                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}" class="btn-group">
+                                                <span class="stock-value" id="stock-{{ product.sku }}">{{ product.stock_quantity }}</span>
+                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}">
                                                     {% csrf_token %}
-                                                    <button type="submit" name="action" value="add" class="btn btn-sm" >+</button>
+                                                    <button type="submit" name="action" value="add" class="stock-btn stock-btn--add">+</button>
                                                 </form>
                                             </div>
                                             {% endwith %}
-
                                         </td>
-
-                                        <td>${{ product.total_value }}</td>
-
+                                        <td class="price-cell">${{ product.total_value }}</td>
                                         <td>
                                             {% for category in product.categories.all %}
-                                            {{ category.name }} {% if not forloop.last %} / {% endif %}
+                                                <span class="category-tag">{{ category.name }}</span>
                                             {% endfor %}
                                         </td>
                                     </tr>
-                                    {%endif%}
-                                    {%endfor%}
-                            {%endif%}
-                    {%  endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

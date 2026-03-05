@@ -20,6 +20,10 @@ def home_page(request):
     for product in products :
         total_stock_value += product.total_value
         total_stock_amount += product.stock_quantity
+    products_without_sub_category = products.filter(subCategory__isnull=True) 
+    total_unique_items = products_without_sub_category.count() + sub_categorys.count()
+
+
 
     #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
@@ -58,7 +62,10 @@ def home_page(request):
             "object" : product 
         })
     filtered_sub_categorys = sub_categorys.filter(products__in=products_with_sub_category).distinct() # applyign the filters, distint so there no reapeats *very inportant*
-    for sub in filtered_sub_categorys:          
+    for sub in filtered_sub_categorys:   
+            sub_products = products_with_sub_category.filter(subCategory=sub)
+            if not sub_products.exists():   
+                continue        
             combined_products.append({
                 "type": "subcategory",
                 "name": sub.name,
@@ -69,7 +76,8 @@ def home_page(request):
                 "categories": "",
                 "object" : sub 
             })
-
+    for item in combined_products:
+        print(item["type"], item["sku"])
     #||||||||||||||   sorting logic  ||||||||||||||
     sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
     if not sort_key:
@@ -98,11 +106,11 @@ def home_page(request):
                    "filtered_sub_category_list" : products_with_sub_category, # this has a list of all the products that have subcategorys that are also filtered properaly
                     'show_zero': show_zero,
                     "base_query": base_query_string,
-                    "current_sort" : sort_key,
                     "current_category_sort_list":cateogory_sort,
                     "total_stock_value" : total_stock_value,
                     "total_stock_amount" : total_stock_amount,
-                    "combined_products" : combined_products
+                    "combined_products" : combined_products,
+                    "total_unique_items": total_unique_items,
 })
 
 def change_stock(request, sku):

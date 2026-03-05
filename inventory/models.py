@@ -26,7 +26,7 @@ class SubCategory(models.Model):
     @property
     def sku(self):
         sku = self.products.aggregate(sku=Min("sku"))
-        return sku["sku"]
+        return sku["sku"] or 0
     @property
     def total_stock(self):
         total_stock = 0 
@@ -78,6 +78,8 @@ class Product(models.Model):
         constraints = [
             CheckConstraint(condition=Q(price__gte=0), name="price_must_be_gte_0"),
             CheckConstraint(condition=Q(stock_quantity__gte=0), name="stock_must_be_gte_0"),
+            CheckConstraint(condition=Q(sku__gte=0), name="sku_must_be_gte_0"),
+
 
         ]
 
