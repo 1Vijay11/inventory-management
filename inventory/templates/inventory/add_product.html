@@ -1,72 +1,321 @@
 {% extends "base.html" %}
+{% block title %}Add Products{% endblock %}
 
-{% block title %}Adding Product{% endblock %}
+{% block content %}
+<div class="add-products-wrapper">
 
+    {% if messages %}
+    {% for message in messages %}
+    <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+        {{ message }}
+        <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    <!-- Page Header -->
+    <div class="dashboard-header mb-4">
+        <h1 class="dashboard-title">Add Products</h1>
+        <p class="dashboard-subtitle">Add new products manually, import from CSV, or manage categories</p>
+    </div>
 
-{% block content%}
-<div class="max-w-2xl mx-auto">
-    <h1> Adding Product</h1>
-    </form>
-        <form method="post" class="mt-4">
-        <!-- Add the CSRF token for security -->
-        {% csrf_token %}
-        <!-- Render the form fields -->
-            {% for field in form %}
-            <div>
-            <label for="{{ field.id_for_label }}" class="">
-                {{ field.label }}
-            </label>
-            {{ field }}
-                <div class = "field-error-container">
-                {% if field.errors %}
-                    <p class="field-error">{{ field.errors|striptags }}</p>
-                {% endif %}
-                </div>
+    <!-- Tabs -->
+    <div class="add-tabs mb-4">
+        <button class="add-tab active" data-tab="manual">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Add Product
+        </button>
+        <button class="add-tab" data-tab="csv">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor"
+                    stroke-width="2" stroke-linejoin="round" />
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" />
+            </svg>
+            CSV Import
+        </button>
+        <button class="add-tab" data-tab="categories">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2" />
+            </svg>
+            Categories
+        </button>
+        <button class="add-tab" data-tab="subcategories">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" />
+            </svg>
+            Subcategories
+        </button>
+    </div>
+
+    <!-- ── add Product Tab ─────────────────────────── -->
+    <div class="tab-panel active" id="tab-manual">
+        <div class="form-card">
+            <div class="form-card__header">
+                <h2 class="form-card__title">Add New Product</h2>
+                <p class="form-card__sub">Fill in the details to add a product to your inventory</p>
             </div>
-        {% endfor %}
-        <button type="submit" class="">Save</button>
-    </form>
-    <div class="upload.csv mt-6">
+            <form method="POST" class="form-card__body">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <!-- Name -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="{{ form.name.id_for_label }}">Product Name</label>
+                        <input class="form-input {% if form.name.errors %}form-input--error{% endif %}" type="text"
+                            name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}" placeholder="e.g. Bunny"
+                            value="{{ form.name.value|default:'' }}">
+                        {% if form.name.errors %}<p class="form-error">{{ form.name.errors|striptags }}</p>{% endif %}
+                    </div>
 
-        <h2 class="text-xl font-bold mt-6 mb-2">Upload (CSV)</h2>
+                    <!-- SKU -->
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.sku.id_for_label }}">SKU</label>
+                        <input class="form-input {% if form.sku.errors %}form-input--error{% endif %}" type="text"
+                            name="{{ form.sku.html_name }}" id="{{ form.sku.id_for_label }}"
+                            placeholder="e.g. {{ sugested_sku }}" value="{{ form.sku.value|default:'' }}">
+                        {% if form.sku.errors %}<p class="form-error">{{ form.sku.errors|striptags }}</p>{% endif %}
+                    </div>
 
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="file" name="csv_file" accept=".csv" class="border" required>
+                    <!-- Price -->
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.price.id_for_label }}">Price ($)</label>
+                        <input class="form-input {% if form.price.errors %}form-input--error{% endif %}" type="number"
+                            step="0.01" name="{{ form.price.html_name }}" id="{{ form.price.id_for_label }}"
+                            placeholder="0.00" value="{{ form.price.value|default:'' }}">
+                        {% if form.price.errors %}<p class="form-error">{{ form.price.errors|striptags }}</p>{% endif %}
+                    </div>
 
-            <button type="submit" name="upload_csv" class="bg-green-200">
-                Upload CSV
-            </button>
-        </form>
+                    <!-- Quantity -->
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Quantity</label>
+                        <input class="form-input {% if form.stock_quantity.errors %}form-input--error{% endif %}"
+                            type="number" name="{{ form.stock_quantity.html_name }}"
+                            id="{{ form.stock_quantity.id_for_label }}" placeholder="0"
+                            value="{{ form.stock_quantity.value|default:'' }}">
+                        {% if form.stock_quantity.errors %}<p class="form-error">{{ form.stock_quantity.errors|striptags }}</p>{% endif %}
+                    </div>
+
+                    <!-- Categories -->
+                    <div class="form-group form-group--categories">
+                        <label class="form-label">Categories</label>
+                        <div class="category-checkbox-grid">
+                            {% for checkbox in form.categories %}
+                            <label class="category-checkbox">
+                                {{ checkbox.tag }}
+                                <span>{{ checkbox.choice_label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.categories.errors %}<p class="form-error">{{ form.categories.errors|striptags }}</p>
+                        {% endif %}
+                    </div>
+                    <!-- SubCategory -->
+                    <div class="form-group form-group--categories">
+                        <label class="form-label" for="{{ form.subCategory.id_for_label }}">Subcategory</label>
+                        <select class="form-input form-select-input" name="{{ form.subCategory.html_name }}"
+                            id="{{ form.subCategory.id_for_label }}">
+                            {% for choice in form.subCategory %}
+                            {{ choice }}
+                            {% endfor %}
+                        </select>
+                        {% if form.subCategory.errors %}
+                        <p class="form-error">{{ form.subCategory.errors|striptags }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-card__footer">
+                    <button type="submit" name="add-product" class="form-submit">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        Add Product
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- ── CSV Import Tab ───────────────────────────── -->
+    <div class="tab-panel" id="tab-csv">
+        <div class="form-card">
+            <div class="form-card__header">
+                <h2 class="form-card__title">Import from CSV</h2>
+                <p class="form-card__sub">Upload a CSV file to bulk import products</p>
+            </div>
+            <div class="form-card__body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="csv-dropzone" id="csvDropzone">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" class="csv-dropzone__icon">
+                            <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="#e8927c" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" stroke="#e8927c" stroke-width="2"
+                                stroke-linecap="round" />
+                        </svg>
+                        <p class="csv-dropzone__text">Drop your CSV here or <label for="csvFileInput"
+                                class="csv-dropzone__browse">click to browse</label></p>
+                        <p class="csv-dropzone__hint">Supports: name, sku, price, quantity, category columns</p>
+                        <input type="file" id="csvFileInput" name="csv_file" accept=".csv" class="csv-dropzone__input"
+                            required>
+                        <p class="csv-dropzone__filename" id="csvFilename"></p>
+                    </div>
+                    <div class="form-card__footer">
+                        <button type="submit" name="upload_csv" class="form-submit">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Import Products
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Categories Tab ───────────────────────────── -->
+    <div class="tab-panel" id="tab-categories">
+        <div class="form-card">
+            <div class="form-card__header">
+                <h2 class="form-card__title">Manage Categories</h2>
+                <p class="form-card__sub">Create and organise product categories</p>
+            </div>
+            <div class="form-card__body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group form-group--inline">
+                        <input class="form-input" type="text" name="{{ category_form.name.html_name }}"
+                            id="{{ category_form.name.id_for_label }}" placeholder="Enter category name"
+                            value="{{ category_form.name.value|default:'' }}">
+                        <button type="submit" name="add-category" class="form-submit">Add Category</button>
+                    </div>
+                    {% if category_form.name.errors %}
+                    <p class="form-error">{{ category_form.name.errors|striptags }}</p>
+                    {% endif %}
+                </form>
+
+                {% if categorys %}
+                <div class="existing-list">
+                    <h3 class="existing-list__title">Existing Categories</h3>
+                    <div class="existing-list__items">
+                        {% for cat in categorys %}
+                        <div class="existing-item">
+                            <span class="existing-item__name">{{ cat.name }}</span>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <button type="submit" name="delete-category" value="{{ cat.id }}"
+                                    class="existing-item__delete">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Subcategories Tab ────────────────────────── -->
+    <div class="tab-panel" id="tab-subcategories">
+        <div class="form-card">
+            <div class="form-card__header">
+                <h2 class="form-card__title">Manage Subcategories</h2>
+                <p class="form-card__sub">Create and organise product subcategories</p>
+            </div>
+            <div class="form-card__body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group form-group--inline">
+                        <input class="form-input" type="text" name="{{ sub_category_form.name.html_name }}"
+                            id="{{ sub_category_form.name.id_for_label }}" placeholder="Enter subcategory name"
+                            value="{{ sub_category_form.name.value|default:'' }}">
+                        <button type="submit" name="add-sub-category" class="form-submit">Add Subcategory</button>
+                    </div>
+                    {% if sub_category_form.name.errors %}
+                    <p class="form-error">{{ sub_category_form.name.errors|striptags }}</p>
+                    {% endif %}
+                </form>
+
+                {% if sub_categorys %}
+                <div class="existing-list">
+                    <h3 class="existing-list__title">Existing Subcategories</h3>
+                    <div class="existing-list__items">
+                        {% for sub in sub_categorys %}
+                        <div class="existing-item">
+                            <span class="existing-item__name">{{ sub.name }}</span>
+                            <form method="POST">
+                                {% csrf_token %}
+                                <button type="submit" name="delete-subcategory" value="{{ sub.id }}"
+                                    class="existing-item__delete">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
 
-<div class="max-w-2xl mx-auto">
-    <h1> Adding category</h1>
+{% block scripts %}
+<script>
+    // Tab switching
+    // Tab switching
+    const tabs = document.querySelectorAll('.add-tab');
+    const panels = document.querySelectorAll('.tab-panel');
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %} <!--Django will reject POST requests without this.-->
-        <div class="mb-3">
-            {{ form.name.label_tag }}
-            {{ form.name }}
-        </div>
-        <button type="submit" name="add-category">Save</button>
+    function activateTab(tabName) {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        const tab = document.querySelector(`[data-tab="${tabName}"]`);
+        const panel = document.getElementById(`tab-${tabName}`);
+        if (tab) tab.classList.add('active');
+        if (panel) panel.classList.add('active');
+    }
 
-    </form>
-</div>
-<div class="max-w-2xl mx-auto">
-    <h1> Adding Sub Category</h1>
+    // On page load, open the tab that was active when form was submitted
+    activateTab("{{ active_tab }}");
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %} <!--Django will reject POST requests without this.-->
-        <div class="mb-3">
-            {{ form.name.label_tag }}
-            {{ form.name }}
-        </div>
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
 
-        <button type="submit" name="add-sub-category">Save</button>
+    // CSV filename display
+    const csvInput = document.getElementById('csvFileInput');
+    const csvFilename = document.getElementById('csvFilename');
+    if (csvInput) {
+        csvInput.addEventListener('change', () => {
+            csvFilename.textContent = csvInput.files[0]?.name || '';
+        });
+    }
 
-    </form>
-</div>
 
+    // timer to remove error messages 
+    setTimeout(() => {
+        document.querySelectorAll('.auto-dismiss').forEach(alert => {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+
+            setTimeout(() => alert.remove(), 500);
+        });
+    }, 3000);  
+</script>
 {% endblock %}

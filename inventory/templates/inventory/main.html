@@ -7,8 +7,9 @@
 <div class="container py-4">
     {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
                     {{ message }}
+                    <button class="alert__close" onclick="this.parentElement.remove()">×</button>
                 </div>
             {% endfor %}
     {% endif %}
@@ -307,8 +308,11 @@
         </div>
      </div>
     <!-- if the filtered product list ever is empty error message apears  -->
-    {% if products|length == 0 %}
-    <p>No products found matching your criteria.</p>
+    {% if combined_products|length == 0%}
+    <div class="empty-state">
+        <p class="empty-state__title">No products found</p>
+        <p class="empty-state__sub">Try adjusting your search or filters</p>
+    </div>
     {% endif %}
 
 </div>

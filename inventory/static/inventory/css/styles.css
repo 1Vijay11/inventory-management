@@ -17,8 +17,8 @@ html {
 }
 /* ── Navbar ─────────────────────────────────────── */
 nav.inventory-navbar {
-    background-color: #fdf6f0;
-    border-bottom: 1px solid #f0ddd3;
+    background-color: #fdf0ed;
+    border-bottom: 1px solid #f5d5cb;
     padding: 0.75rem 0;
     box-shadow: 0 2px 10px rgba(180, 120, 100, 0.07);
 }
@@ -107,13 +107,13 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 
 /* Dusty Rose */
 .stat-card--rose {
-    background-color: #fdf0ed;
+    background-color: #faf1ef;
     border-color: #f5d5cb;
 }
 
 /* Warm Peach */
 .stat-card--peach {
-    background-color: #fef4e8;
+    background-color: #f9f2e9;
     border-color: #f7dfc0;
 }
 
@@ -147,8 +147,8 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 }
 /* ── Filter Bar ─────────────────────────────────── */
 .filter-bar {
-    background-color: #fffaf7;
-    border: 1px solid #f0ddd3;
+    background-color: #fdf0ed;
+    border: 1px solid #f5d5cb;
     border-radius: 14px;
     padding: 1rem 1.25rem;
     box-shadow: 0 2px 10px rgba(180, 120, 100, 0.06);
@@ -598,7 +598,7 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     padding: 0.75rem 1rem;
     border: none;
     border-bottom: 1px solid #faeee8;
-    background-color: #fdf6f0;
+    background-color: #faf0eb;
     vertical-align: middle;
 }
 
@@ -635,7 +635,7 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     padding: 0.75rem 1rem;
     border: none;
     border-bottom: 1px solid #faeee8;
-    background-color: #fffcfa;
+    background-color: #fef8f4;
     vertical-align: middle;
     font-size: 0.875rem;
     color: #2c1a0e;
@@ -648,4 +648,510 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 .table-card .table th:nth-child(4),
 .table-card .table td:nth-child(4) {
     text-align: center;
+}
+/* ── Empty State ────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #fffaf7;
+    border: 1px dashed #f0cfc5;
+    border-radius: 14px;
+    margin: 1rem 0;
+}
+
+.empty-state__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c1a0e;
+    margin-bottom: 0.25rem;
+}
+
+.empty-state__sub {
+    font-size: 0.85rem;
+    color: #b08070;
+    margin: 0;
+}
+
+/* ── Footer ─────────────────────────────────────── */
+.site-footer {
+    margin-top: 2.5rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid #f5d5cb;
+    background-color: #fdf0ed;
+}
+
+.site-footer__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.site-footer__divider {
+    color: #d4b5a8;
+    font-size: 0.85rem;
+}
+
+.site-footer__copy {
+    font-size: 0.8rem;
+    color: #b08070;
+}
+/* ── Alert Messages ─────────────────────────────── */
+.alert__close {
+    background-color: transparent;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.5;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+}
+
+.message-div{
+    display: flex;
+    justify-content:space-between
+}
+/* 
+
+
+
+
+
+================================================================================================
+================================================================================================
+
+
+EDIT_PRODUCT CSS BELOW
+
+================================================================================================
+================================================================================================
+
+
+
+
+*/
+
+/* ── Tabs ───────────────────────────────────────── */
+.add-tabs {
+    display: flex;
+    gap: 0.4rem;
+    background-color: #fdf0ed;
+    border: 1px solid #f0cfc5;
+    border-radius: 12px;
+    padding: 0.35rem;
+    width: fit-content;
+    flex-wrap: wrap;
+}
+
+.add-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #b08070;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+}
+
+.add-tab:hover {
+    color: #2c1a0e;
+    background-color: #fdf6f4;
+}
+
+.add-tab.active {
+    background-color: #ffffff;
+    color: #d4735a;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(180, 120, 100, 0.15);
+}
+
+/* ── Tab Panels ─────────────────────────────────── */
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* ── Form Card ──────────────────────────────────── */
+.form-card {
+    background-color: #fffaf7;
+    border: 1px solid #f0ddd3;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(180, 120, 100, 0.06);
+    max-width: 680px;
+}
+
+.form-card__header {
+    padding: 1.5rem 1.75rem 0;
+}
+
+.form-card__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    margin-bottom: 0.2rem;
+}
+
+.form-card__sub {
+    font-size: 0.85rem;
+    color: #b08070;
+    margin-bottom: 1.25rem;
+}
+
+.form-card__body {
+    padding: 1.25rem 1.75rem;
+}
+
+.form-card__footer {
+    padding: 1.25rem 0 0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ── Form Grid ──────────────────────────────────── */
+.add-products-wrapper {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* ── Form Grid (3 col so name isn't full width) ─── */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group--full {
+    grid-column: unset; /* remove full width override */
+}
+
+.form-group--categories {
+    grid-column: 1 / -1; /* only categories spans full */
+}
+
+/* ── Form Elements ──────────────────────────────── */
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #9e7060;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.form-input {
+    padding: 0.55rem 0.85rem;
+    border: 1px solid #f0cfc5;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-size: 0.875rem;
+    color: #2c1a0e;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+}
+
+.form-input:focus {
+    border-color: #e8927c;
+    box-shadow: 0 0 0 3px rgba(232, 146, 124, 0.15);
+}
+
+.form-input::placeholder {
+    color: #c4a89a;
+}
+
+.form-input--error {
+    border-color: #e8927c;
+    background-color: #fdf6f4;
+}
+
+.form-error {
+    font-size: 0.78rem;
+    color: #c0604a;
+    margin: 0;
+}
+
+/* ── Category Checkboxes ────────────────────────── */
+.category-checkbox-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.category-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid #f0cfc5;
+    border-radius: 20px;
+    background-color: #ffffff;
+    font-size: 0.82rem;
+    color: #9e7060;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.category-checkbox:hover {
+    border-color: #e8927c;
+    color: #2c1a0e;
+}
+
+.category-checkbox input[type="checkbox"] {
+    accent-color: #e8927c;
+    width: 13px;
+    height: 13px;
+}
+
+.category-checkbox:has(input:checked) {
+    background-color: #fdf0ed;
+    border-color: #e8927c;
+    color: #d4735a;
+    font-weight: 600;
+}
+.form-select-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23b08070' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
+
+/* ── Submit Button ──────────────────────────────── */
+.form-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.55rem 1.4rem;
+    background-color: #e8927c;
+    color: #ffffff;
+    border: none;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 8px rgba(232, 146, 124, 0.35);
+}
+
+.form-submit:hover {
+    background-color: #d4735a;
+    box-shadow: 0 4px 12px rgba(212, 115, 90, 0.4);
+}
+
+/* ── CSV Dropzone ───────────────────────────────── */
+.csv-dropzone {
+    border: 2px dashed #f0cfc5;
+    border-radius: 12px;
+    background-color: #fffcfa;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    cursor: pointer;
+}
+
+.csv-dropzone:hover {
+    border-color: #e8927c;
+    background-color: #fdf6f4;
+}
+
+.csv-dropzone__icon {
+    margin: 0 auto 0.75rem;
+    display: block;
+}
+
+.csv-dropzone__text {
+    font-size: 0.9rem;
+    color: #5a3825;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.csv-dropzone__browse {
+    color: #e8927c;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.csv-dropzone__hint {
+    font-size: 0.78rem;
+    color: #b08070;
+    margin: 0;
+}
+
+.csv-dropzone__input {
+    display: none;
+}
+
+.csv-dropzone__filename {
+    margin-top: 0.75rem;
+    font-size: 0.82rem;
+    color: #d4735a;
+    font-weight: 500;
+    min-height: 1.2em;
+}
+/* ── Existing Items List ────────────────────────── */
+.existing-list {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #f0ddd3;
+}
+
+.existing-list__title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #b08070;
+    margin-bottom: 0.75rem;
+}
+
+.existing-list__items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.existing-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.85rem;
+    background-color: #ffffff;
+    border: 1px solid #f0cfc5;
+    border-radius: 9px;
+    transition: background-color 0.12s ease;
+}
+
+.existing-item:hover {
+    background-color: #fdf6f4;
+}
+
+.existing-item__name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #2c1a0e;
+}
+
+.existing-item__delete {
+    background: none;
+    border: none;
+    color: #c4a89a;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.existing-item__delete:hover {
+    color: #c0604a;
+    background-color: #fdf0ed;
+}
+
+/* ── Category/Sub form inline layout ───────────── */
+.form-card__body .form-group--inline {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.form-group--inline .form-input {
+    flex: 1;
+}
+
+.form-group--inline .form-submit {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* ── Existing items grid (3 per row) ────────────── */
+.existing-list__items {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+}
+
+.existing-item {
+    padding: 0.45rem 0.7rem;
+}
+
+.existing-item__name {
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/*  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ */
+
+
+
+/*  style for edit_product.html  */
+
+
+/*  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ */
+
+/* ── Edit page back link ────────────────────────── */
+.edit-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #b08070;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.edit-back-link:hover {
+    color: #d4735a;
+}
+
+/* ── Edit form footer ───────────────────────────── */
+.edit-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1.25rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid #f0ddd3;
+}
+
+/* ── Delete button ──────────────────────────────── */
+.form-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.55rem 1.2rem;
+    background-color: #fdf0ed;
+    color: #c0604a;
+    border: 1px solid #f0cfc5;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.form-delete:hover {
+    background-color: #fae0da;
+    border-color: #e8927c;
 }

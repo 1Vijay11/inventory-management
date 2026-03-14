@@ -63,13 +63,14 @@
         {% block content %}
         {% endblock %}
     </main>
-    <footer>
-        {% block footer %}
-        <p class="card-body">
-            &copy; 2026 JaydenBolton Inventory Managemnt System
-        </p>
-        {% endblock %}
-    </footer>
+<footer class="site-footer">
+    {% block footer %}
+    <div class="site-footer__inner">
+        <span class="site-footer__divider">·</span>
+        <span class="site-footer__copy">&copy; 2026 JaydenBolton — Inventory Management System</span>
+    </div>
+    {% endblock %}
+</footer>
 
     {% block scripts %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

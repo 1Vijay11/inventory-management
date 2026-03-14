@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .forms import ProductForm, CategoryForm, SubCategoryForm
 from .models import Product, Category, SubCategory
-from django.db.models import Q # used for adding and/or/not in more advanced wher clauses
+from django.db.models import Q, Max# used for adding and/or/not in more advanced wher clauses
 from csv import DictWriter, DictReader
 import csv
 import io
 from django.contrib import messages # usefull when creting errors
+
 # Create your views here. 
 
 def home_page(request):
@@ -76,8 +77,6 @@ def home_page(request):
                 "categories": "",
                 "object" : sub 
             })
-    for item in combined_products:
-        print(item["type"], item["sku"])
     #||||||||||||||   sorting logic  ||||||||||||||
     sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
     if not sort_key:
@@ -128,125 +127,158 @@ def change_stock(request, sku):
     return redirect(f"/?{request.GET.urlencode()}") # request.GET.urlencode() simply just gets the past parmaters and saves them as a string, for exmaple" search=&category_sort=&show_zero_stock=&sort=sku"
 
 def create(request):
-    products = Product.objects.all() # might use
+    products = Product.objects.all() 
     category = Category.objects.all()
     sub_Category = SubCategory.objects.all()
+
+
+    product_form = ProductForm()
+    category_form = CategoryForm()
+    sub_category_form = SubCategoryForm()
+
+    active_tab = 'manual' # track tab after refresh 
+
     #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\         add product logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+    if request.method == "POST":
 
-    if request.method == "POST": # form being sumbited 
-        form = ProductForm(request.POST) #reciving data from the form
-        if form.is_valid(): # django making sure everything is good with the new info given        
-            form.save() # writes and savs to databse 
-            messages.success(request, "Succesfully Added New Product")
-            return redirect('home_page') # redirects to whatever url is named inventory_list
-    else:
-        form = ProductForm() # occurs when form is blank
+        if "add-product" in request.POST:
+            product_form = ProductForm(request.POST) #reciving data from the form
+            if product_form.is_valid(): # django making sure everything is good with the new info given        
+                product_form.save() # writes and savs to databse 
+                messages.success(request, "Succesfully Added New Product")
+                return redirect('home_page') # redirects to whatever url is named inventory_list
+        # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+        elif "add-category" in request.POST :
+            active_tab = 'categories'
+            category_form = CategoryForm(request.POST) #reciving data from the form
+            if category_form.is_valid(): # django making sure everything is good with the new info given
+                category_form.save() # writes and savs to databse 
+                messages.success(request, "Succesfully Added New Category")
+                return redirect('product_add') # redirects to whatever url is named inventory_list
 
-    # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               add category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    if request.method == "POST" and "add-category" in request.POST :
-        form = CategoryForm(request.POST) #reciving data from the form
-        if form.is_valid(): # django making sure everything is good with the new info given
-            form.save() # writes and savs to databse 
-            messages.success(request, "Succesfully Added New Category")
-            return redirect('home_page') # redirects to whatever url is named inventory_list
-        else:
-            form = CategoryForm() # occurs when form is blank
-    # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               add sub Category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    if request.method == "POST" and "add-sub-category" in request.POST :
-        form = SubCategoryForm(request.POST) #reciving data from the form
-        if form.is_valid(): # django making sure everything is good with the new info given
-            form.save() # writes and savs to databse 
-            messages.success(request, "Succesfully Added New Sub Category")
-            return redirect('home_page') # redirects to whatever url is named inventory_list
-        else:
-            form = SubCategoryForm() # occurs when form is blank
-#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\            uploading csv logic         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    if request.method == "POST" and "upload_csv" in request.POST:
-        csv_file = request.FILES.get("csv_file")
-        # Read file
-        decoded_file = csv_file.read().decode("utf-8")
-        reader = csv.DictReader(io.StringIO(decoded_file))
+        # ── Delete Category ───────────────────────────
+        elif "delete-category" in request.POST:
+            cat_id = request.POST.get("delete-category")
+            Category.objects.filter(id=cat_id).delete()
+            messages.success(request, "Category deleted")
+            active_tab = 'categories'
 
-        rows_skipped = []
-        number_of_rows_skipped = 0
-        number_of_rows_added = 0
+            # NO REDIRECT so you can continue deleting
+        # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               Sub Category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+        elif "add-sub-category" in request.POST:
+            active_tab = 'subcategories'
+            sub_category_form = SubCategoryForm(request.POST) #reciving data from the form
+            if sub_category_form.is_valid(): # django making sure everything is good with the new info given
+                sub_category_form.save() # writes and savs to databse 
+                messages.success(request, "Succesfully Added New Sub Category")
+                return redirect('product_add') # redirects to whatever url is named inventory_list
+        # ── Delete Subcategory ────────────────────────
+        elif "delete-subcategory" in request.POST:
+            sub_id = request.POST.get("delete-subcategory")
+            SubCategory.objects.filter(id=sub_id).delete()
+            messages.success(request, "Subcategory deleted")
+            active_tab = 'subcategories'
+            # NO REDIRECT so you can continue deleting
 
-        for row_number, row in enumerate(reader, start=2):  # start=2 accounts for header row  
-            try :
-                if float(row["price"]) >= 0 and int(row["stock"]) >= 0 :                
-                    new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
-                        #updateOrCreate requires a lookip field and a update field
-                        sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
-                        defaults={               # FIELDS TO UPDATE- what to update
-                            "name": row["name"].strip(),
-                            "price": float(row["price"]),
-                            "stock_quantity": int(row["stock"]),
-                        }
-                    )
-                    number_of_rows_added += 1
-                    new_product.categories.clear() # simply removes all the categorys of the product so that all new ones can be added
-                    category_names = row["category"].split(",")
-                    
-                    for category_name in category_names:
-                        # will reaturn a tuple : categoy, if created TRUE else FALSE
-                        category_name = category_name.strip()
-                        if category_name :
-                            category_name = category_name.title()
+    #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\            uploading csv logic         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+        elif "upload_csv" in request.POST:
+            csv_file = request.FILES.get("csv_file")
+            # Read file
+            decoded_file = csv_file.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(decoded_file))
 
-                            category, got_created = Category.objects.get_or_create(name=category_name)# note that created is not used just her for reading purposes, as a tuple is reutnred
-                            new_product.categories.add(category)
+            rows_skipped = []
+            number_of_rows_skipped = 0
+            number_of_rows_added = 0
+
+            for row_number, row in enumerate(reader, start=2):  # start=2 accounts for header row  
+                try :
+                    if float(row["price"]) >= 0 and int(row["stock"]) >= 0 :                
+                        new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
+                            #updateOrCreate requires a lookip field and a update field
+                            sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
+                            defaults={               # FIELDS TO UPDATE- what to update
+                                "name": row["name"].strip(),
+                                "price": float(row["price"]),
+                                "stock_quantity": int(row["stock"]),
+                            }
+                        )
+                        number_of_rows_added += 1
+                        new_product.categories.clear() # simply removes all the categorys of the product so that all new ones can be added
+                        category_names = row["category"].split(",")
+                        
+                        for category_name in category_names:
+                            # will reaturn a tuple : categoy, if created TRUE else FALSE
+                            category_name = category_name.strip()
+                            if category_name :
+                                category_name = category_name.title()
+
+                                category, got_created = Category.objects.get_or_create(name=category_name)# note that created is not used just her for reading purposes, as a tuple is reutnred
+                                new_product.categories.add(category)
+                                new_product.save()
+
+                        # sub Category Logic, create or add subcategory
+                        sub_category_name = row["subCategory"]
+                        if sub_category_name:
+                            sub_category_name = sub_category_name.title()
+                            sub_category, created = SubCategory.objects.get_or_create(name=sub_category_name)
+
+                            new_product.subCategory = sub_category
                             new_product.save()
+                    else :
+                        if int(row["price"]) < 0 :
+                            number_of_rows_skipped += 1
+                            rows_skipped.append(row["sku"])
+                            messages.error(
+                                request,
+                                f"Row {row_number}: has an invalid price. Price MUST be greater or eqaul to 0"
+                            )
 
-                    # sub Category Logic, create or add subcategory
-                    sub_category_name = row["subCategory"]
-                    if sub_category_name:
-                        sub_category_name = sub_category_name.title()
-                        sub_category, created = SubCategory.objects.get_or_create(name=sub_category_name)
+                        elif int(row["stock"]) < 0  :
+                            number_of_rows_skipped += 1
+                            rows_skipped.append(row["sku"])
+                            messages.error(
+                                request,
+                                f"Row {row_number}: has an invalid Stock. Stock MUST be greater or eqaul to 0"
+                            )
+                except KeyError as e:
+                    messages.error(
+                        request,
+                        f"Row {row_number}: Missing column '{e.args[0]}'. "
+                        f"Required headers: sku, name, price, stock, category"
+                    )
+                    continue
+                except Exception as e:
+                    messages.error(
+                        request,
+                        f"Row {row_number}: Unexpected error — {str(e)}"
+                    )
+                    continue
 
-                        new_product.subCategory = sub_category
-                        new_product.save()
-                else :
-                    if int(row["price"]) < 0 :
-                        number_of_rows_skipped += 1
-                        rows_skipped.append(row["sku"])
-                        messages.error(
-                            request,
-                            f"Row {row_number}: has an invalid price. Price MUST be greater or eqaul to 0"
-                        )
+                    # PRINTING error logic 
+            if number_of_rows_added > 0 :
+                messages.success(request, f"Succesfully Updated or Created {number_of_rows_added} Rows")
 
-                    elif int(row["stock"]) < 0  :
-                        number_of_rows_skipped += 1
-                        rows_skipped.append(row["sku"])
-                        messages.error(
-                            request,
-                            f"Row {row_number}: has an invalid Stock. Stock MUST be greater or eqaul to 0"
-                        )
-            except KeyError as e:
-                messages.error(
-                    request,
-                    f"Row {row_number}: Missing column '{e.args[0]}'. "
-                    f"Required headers: sku, name, price, stock, category"
-                )
-                continue
-            except Exception as e:
-                messages.error(
-                    request,
-                    f"Row {row_number}: Unexpected error — {str(e)}"
-                )
-                continue
+            if number_of_rows_skipped > 0 :     
+                    messages.warning(request, f" SKIPPED {number_of_rows_skipped} rows")
 
-                # PRINTING error logic 
-        if number_of_rows_added > 0 :
-            messages.success(request, f"Succesfully Updated or Created {number_of_rows_added} Rows")
+            return redirect("home_page")
+    # caclualte the sugested sku:
+    max_sku = Product.objects.aggregate(m=Max('sku'))['m'] or 0
+    sugested_sku = int(max_sku) + 1
 
-        if number_of_rows_skipped > 0 :     
-                messages.warning(request, f" SKIPPED {number_of_rows_skipped} rows")
+        #return render
+    return render(request, 'inventory/add_product.html', {
+        'form': product_form,
+        'category_form': category_form,
+        'sub_category_form': sub_category_form,
+        'categorys': category,
+        'sub_categorys': sub_Category,
+        'products': products,
+        'sugested_sku': sugested_sku,
+        'active_tab': active_tab,
 
-        return redirect("home_page")
-    
-    #return render
-    return render(request, 'inventory/add_product.html', {'form': form, "categorys":category})
-
+    })
 
 def product_edit(request, sku):
     product = get_object_or_404(Product, sku=sku)
