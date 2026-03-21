@@ -59,7 +59,7 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     stock_quantity = models.IntegerField(default=0)
-
+    discontinued = models.BooleanField(default=False) # items just being added are normally not discontinued
     # creating a many to many relationship, blank = true => alows products to have no category
     categories = models.ManyToManyField(Category, blank=True, related_name="products")
 
@@ -79,7 +79,6 @@ class Product(models.Model):
             CheckConstraint(condition=Q(price__gte=0), name="price_must_be_gte_0"),
             CheckConstraint(condition=Q(stock_quantity__gte=0), name="stock_must_be_gte_0"),
             CheckConstraint(condition=Q(sku__gte=0), name="sku_must_be_gte_0"),
-
 
         ]
 

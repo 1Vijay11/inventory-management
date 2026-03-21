@@ -6,6 +6,9 @@ from csv import DictWriter, DictReader
 import csv
 import io
 from django.contrib import messages # usefull when creting errors
+from django.http import JsonResponse
+import json
+from django.db.models import Sum, F
 
 # Create your views here. 
 
@@ -46,6 +49,11 @@ def home_page(request):
     if not show_zero :
         products = products.filter(stock_quantity__gt=0) # gt = greater than
     
+    #||||||||||||||    Discontinued logic   ||||||||||||||
+    show_discontinued = request.GET.get('show_discontinued', "")
+    if not show_discontinued :
+        products = products.filter(discontinued=False) 
+    
         # ||||||||||||||             SUBCATEGORY LOGIC               ||||||||||||||
     products_with_sub_category = products.filter(subCategory__isnull=False) # seperates products into 2 list 1with and 1 without subcategorys
     products = products.filter(subCategory__isnull=True)
@@ -60,6 +68,7 @@ def home_page(request):
             "stock_quantity": product.stock_quantity,
             "total_value" : product.total_value,
             "categories": product.categories,
+            "discontinued" : product.discontinued,
             "object" : product 
         })
     filtered_sub_categorys = sub_categorys.filter(products__in=products_with_sub_category).distinct() # applyign the filters, distint so there no reapeats *very inportant*
@@ -104,6 +113,7 @@ def home_page(request):
                    "sub_categorys": sub_categorys,
                    "filtered_sub_category_list" : products_with_sub_category, # this has a list of all the products that have subcategorys that are also filtered properaly
                     'show_zero': show_zero,
+                    "show_discontinued" : show_discontinued,
                     "base_query": base_query_string,
                     "current_category_sort_list":cateogory_sort,
                     "total_stock_value" : total_stock_value,
@@ -113,19 +123,39 @@ def home_page(request):
 })
 
 def change_stock(request, sku):
-    product = Product.objects.get(sku=sku)
     if request.method == "POST":
-        action = request.POST.get("action") # checking the name and returning the value
-        if action == "add" :
-            product.stock_quantity += 1
-        elif product.stock_quantity >= 1:
-            if action == "minus" :
-                product.stock_quantity -= 1
-        else :
-            messages.error(request, f"{product.name} stock is already at 0")
-    product.save()
-    return redirect(f"/?{request.GET.urlencode()}") # request.GET.urlencode() simply just gets the past parmaters and saves them as a string, for exmaple" search=&category_sort=&show_zero_stock=&sort=sku"
+        data = json.loads(request.body)
+        action = data.get("action")
 
+        product = Product.objects.get(sku=sku)
+
+        if action == "add":
+            product.stock_quantity += 1
+            print("received add as out action")
+
+        elif action == "minus":
+            print("received minus as out action")
+            if product.stock_quantity <= 0:
+                return JsonResponse({"error": "Cannot go below 0"}) # stops the stofk from going below 0
+            product.stock_quantity -= 1
+
+        product.save()
+
+        #reset values without refreshing
+        #derived values calculations
+        products = Product.objects.all()
+        total_stock_value = 0
+        total_stock_amount = 0
+        for item in products :
+            total_stock_value += item.total_value
+            total_stock_amount += item.stock_quantity
+        print("test this i right before we return")
+        return JsonResponse({ # instead of refreshing page just return products only to our js
+            "stock": product.stock_quantity,
+            "total_stock_amount": total_stock_amount,
+            "total_stock_value": total_stock_value,
+        })
+    
 def create(request):
     products = Product.objects.all() 
     category = Category.objects.all()
@@ -193,6 +223,12 @@ def create(request):
 
             for row_number, row in enumerate(reader, start=2):  # start=2 accounts for header row  
                 try :
+                    # Discontinued Logic
+                    raw_discontinued = row["discontinued"].strip().lower() 
+                    if raw_discontinued in ["yes", "true", "discontinued"]:
+                        discontinued = True
+                    else: # if its not a valid true field it will default to no
+                        discontinued = False
                     if float(row["price"]) >= 0 and int(row["stock"]) >= 0 :                
                         new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
                             #updateOrCreate requires a lookip field and a update field
@@ -201,6 +237,7 @@ def create(request):
                                 "name": row["name"].strip(),
                                 "price": float(row["price"]),
                                 "stock_quantity": int(row["stock"]),
+                                "discontinued" : discontinued
                             }
                         )
                         number_of_rows_added += 1

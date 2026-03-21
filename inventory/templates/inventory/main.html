@@ -14,20 +14,25 @@
             {% endfor %}
     {% endif %}
 
-<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
-<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
+<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E   S T A R T ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
+
+
+<!-- |||||||||||||||||||||||||||||||||||||||||||||| T E S T I N G     C O D E   E N D ||||||||||||||||||||||||||||||||||||||||||||||||||||||| -->
 <div class="dashboard-header mb-4">
     <h1 class="dashboard-title">Inventory</h1>
     <p class="dashboard-subtitle">Overview of your product inventory</p>
 </div>
-
-<div class="row g-3 mb-4">
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                        Derived Values Cards                                -->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+ <div class="row g-3 mb-4">
     <!-- Total Stock Value -->
     <div class="col-12 col-md-4">
         <div class="stat-card stat-card--rose">
             <div class="stat-card__label">Total Stock Value</div>
-            <div class="stat-card__value">${{ total_stock_value }}</div>
-            <div class="stat-card__sub">Current inventory worth</div>
+<div class="stat-card__value" id="total-stock-value">
+    ${{ total_stock_value }}
+</div>            <div class="stat-card__sub">Current inventory worth</div>
         </div>
     </div>
 
@@ -35,8 +40,10 @@
     <div class="col-12 col-md-4">
         <div class="stat-card stat-card--peach">
             <div class="stat-card__label">Total Stock Amount</div>
-            <div class="stat-card__value">{{ total_stock_amount }}</div>
-            <div class="stat-card__sub">Units across all products</div>
+
+<div class="stat-card__value" id="total-stock-amount">
+    {{ total_stock_amount }}
+</div>            <div class="stat-card__sub">Units across all products</div>
         </div>
     </div>
 
@@ -49,10 +56,10 @@
         </div>
     </div>
 </div>
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
-<!--                    SEARCHING , 0 STOCK, AND CATEGORY FILTER BAR LOGIC-->
-<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
 
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+<!--                    SEARCHING , 0 STOCK, Discontinued AND CATEGORY FILTER BAR LOGIC-->
+<!-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
     <div class="filter-bar mb-3">
         <form method="GET" class="filter-bar__form">
                         <!-- hidden input field here to also pass in current sort, so page doesnt refresh and remove it -->
@@ -103,9 +110,18 @@
                 <span class="filter-bar__toggle-label">Show out-of-stock</span>
             </label>
 
+            <!-- Show Discontinued items Logic -->
+            <label class="filter-bar__toggle"> 
+                <input type="checkbox" name="show_discontinued" value="show_discontinued"
+                    {% if show_discontinued %}checked{% endif %} onchange="this.form.submit()">
+                <span class="filter-bar__toggle-track">
+                    <span class="filter-bar__toggle-thumb"></span>
+                </span>
+                <span class="filter-bar__toggle-label">Show Discontinued-Items</span>
+            </label>
+            
             <!-- Search Submit (triggered by input or category apply) -->
             <button type="submit" class="filter-bar__search-btn">Search</button>
-
         </form>
     </div>
 
@@ -221,27 +237,43 @@
                             <tr class="product-row">
                                 <!-- ||||||||||||||||||||||      NAME        ||||||||||||||||||||||||||| -->
                                 <td>
-                                    <a href="{% url 'product_edit' sku=item.sku %}" class="product-link">{{ item.name }}</a>
+                                    <span>
+                                    <a href="{% url 'product_edit' sku=item.sku %}" class="product-link {% if item.discontinued %}product-link--discontinued{% endif %}">
+                                        {{ item.name }}
+                                    </a>
+                                    {% if item.discontinued %}
+                                        <div class="discontinued-pill">discontinued</div>
+                                    {% endif %}
+                                    </span>
                                 </td>
+
                                 <!-- ||||||||||||||||||||||      SKU - hidden on mobile        ||||||||||||||||||||||||||| -->
                                 <td class="d-none d-md-table-cell"><span class="sku-badge">{{ item.sku }}</span></td>
                                 <!-- ||||||||||||||||||||||      Price        ||||||||||||||||||||||||||| -->
                                 <td class="price-cell">${{ item.price }}</td>
                                 <!-- ||||||||||||||||||||||      Stock        ||||||||||||||||||||||||||| -->
                                 <td>
-                                    {% with request.GET.urlencode as UrlParameters %}
                                     <div class="stock-control">
-                                        <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}">
-                                            {% csrf_token %}
-                                            <button type="submit" name="action" value="minus" class="stock-btn stock-btn--minus">−</button>
-                                        </form>
-                                            <span class="stock-value">{{ item.stock_quantity }}</span>
-                                        <form method="POST" action="{% url 'change_stock' sku=item.sku %}?{{ UrlParameters }}">
-                                            {% csrf_token %}
-                                            <button type="submit" name="action" value="add" class="stock-btn stock-btn--add">+</button>
-                                        </form>
+                                        <button 
+                                            type="button" 
+                                            class="stock-btn stock-btn--minus"
+                                            data-sku="{{ item.sku }}" 
+                                            data-action="minus">
+                                            −
+                                        </button>
+
+                                        <span class="stock-value" id="stock-{{ item.sku }}">
+                                            {{ item.stock_quantity }}
+                                        </span>
+
+                                        <button 
+                                            type="button" 
+                                            class="stock-btn stock-btn--add"
+                                            data-sku="{{ item.sku }}" 
+                                            data-action="add">
+                                            +
+                                        </button>
                                     </div>
-                                    {% endwith %}
                                 </td>
                                 <!-- ||||||||||||||||||||||      Total Value - hidden on Mobile        ||||||||||||||||||||||||||| -->
                                 <td class="d-none d-md-table-cell price-cell">${{ item.total_value }}</td>
@@ -276,7 +308,13 @@
                                 <!-- price  -->
                                 <td class="price-cell">${{ item.price }}</td>
                                 <!-- stock quantity -->
-                                <td><span class="stock-value">{{ item.stock_quantity }}</span></td>
+                                <td>
+                                    <span 
+                                        class="stock-value subcategory-stock" 
+                                        id="subcategory-stock-{{ item.sku }}">
+                                        {{ item.stock_quantity }}
+                                    </span>
+                                </td>                          
                                 <!-- total value - hiddeon on mobile  -->
                                 <td class="d-none d-md-table-cell price-cell">${{ item.total_value }}</td>
                                 <!-- Category space -->
@@ -286,7 +324,7 @@
                             <!-- ||||||||||||||||||||||||||||||||||||||         Subcategory child rows           |||||||||||||||||||||||||||||||||||||||||-->
                             {% for product in item.object.products.all %}
                                 {% if product in filtered_sub_category_list %}
-                                    <tr class="collapse collapse-row subcategory-child" id="{{ item.sku }}">
+                                    <tr class="collapse collapse-row subcategory-child" id="{{ item.sku }}"data-parent="{{ item.sku }}" >
                                         <!-- Product Name -->
                                         <td>
                                             <a href="{% url 'product_edit' sku=product.sku %}" class="product-link product-link--indented">{{ product.name }}</a>
@@ -297,19 +335,25 @@
                                         <td class="price-cell">${{ product.price }}</td>
                                         <!-- Stock -->
                                         <td>
-                                            {% with request.GET.urlencode as UrlParameters %}
                                             <div class="stock-control">
-                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" name="action" value="minus" class="stock-btn stock-btn--minus">−</button>
-                                                </form>
-                                                <span class="stock-value" id="stock-{{ product.sku }}">{{ product.stock_quantity }}</span>
-                                                <form method="POST" action="{% url 'change_stock' sku=product.sku %}?{{ UrlParameters }}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" name="action" value="add" class="stock-btn stock-btn--add">+</button>
-                                                </form>
+                                                <button 
+                                                    type="button" class="stock-btn stock-btn--minus"
+                                                    data-sku="{{ product.sku }}" data-action="minus">
+                                                    −
+                                                </button>
+
+                                                <span class="stock-value" id="stock-{{ product.sku }}">
+                                                    {{ product.stock_quantity }}
+                                                </span>
+
+                                                <button 
+                                                    type="button" 
+                                                    class="stock-btn stock-btn--add"
+                                                    data-sku="{{ product.sku }}" 
+                                                    data-action="add">
+                                                    +
+                                                </button>
                                             </div>
-                                            {% endwith %}
                                         </td>
                                         <!-- Total Value - hidden on mobile -->
                                         <td class="d-none d-md-table-cell price-cell">${{ product.total_value }}</td>
@@ -343,14 +387,96 @@
 
 {% block scripts %}
 <script>
+    // A TIMER TO REMOVE THE DJANGO ERROR/SUCCES MESSAGE
     setTimeout(() => {
         document.querySelectorAll('.auto-dismiss').forEach(alert => {
-            alert.classList.remove('show');
-            alert.classList.add('fade');
 
-            setTimeout(() => alert.remove(), 500); 
+            let keep = false;
+
+            // If alert itself is clicked then we keep it
+            alert.addEventListener('click', (e) => {
+                // Ignore clicks on the close button
+                if (!e.target.closest('.alert__close')) {
+                    keep = true;
+                }
+            });
+
+            setTimeout(() => {
+                if (keep) return; // if we are suposed to keep it we instantly return here
+
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+
+                setTimeout(() => alert.remove(), 500);
+            }, 5000); // remove after 5 seconds
+
         });
-    }, 10000);  // change later, however  this long for testing purposes
+    }, 0); 
+
+// FOLLOWING FUNCCTIONS TO PREVENT REFRESH ON Stock CHANGE
+
+document.querySelectorAll('.stock-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+        if (button.disabled) return; // cooldown on button
+        button.disabled = true;
+
+        const sku = button.dataset.sku;
+        const action = button.dataset.action;
+
+        try {
+            const response = await fetch(`/change_stock/${sku}/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken()
+                },
+                body: JSON.stringify({ action })
+            });
+
+            const data = await response.json();
+
+            // update the product stock when button is pressed - backend updates and frontend just shows what its should look like
+            const stockEl = document.getElementById(`stock-${sku}`);
+            stockEl.textContent = data.stock;
+
+            // update subcategory total
+            const row = button.closest('tr');
+            const parentSku = row.dataset.parent;
+
+            if (parentSku) {
+                const subStockEl = document.getElementById(`subcategory-stock-${parentSku}`);
+
+                if (subStockEl) {
+                    let current = parseInt(subStockEl.textContent);
+
+                    if (action === "add") current += 1;
+                    if (action === "minus") current -= 1;
+
+                    subStockEl.textContent = current;
+                }
+            }
+            // update card total without refresh
+            document.getElementById('total-stock-amount').textContent = data.total_stock_amount;
+
+            document.getElementById('total-stock-value').textContent = `$${data.total_stock_value}`;
+
+        } catch (err) { 
+            console.error(err);
+            location.reload();
+            console.log("ran int oan error")
+        } finally {
+            setTimeout(() => {
+                button.disabled = false;
+            }, 100); // reset cooldown on button - 0.1 mil seconds
+        }
+    });
+});
+function getCSRFToken() {
+    return document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+}
 </script>
 {% endblock %}
 {% endblock %}

@@ -26,7 +26,7 @@
             <div class="form-grid">
 
                 <!-- Name -->
-                <div class="form-group form-group--categories">
+                <div class="form-group form-group--full">
                     <label class="form-label" for="{{ form.name.id_for_label }}">Product Name</label>
                     <input class="form-input {% if form.name.errors %}form-input--error{% endif %}" type="text"
                         name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
@@ -61,7 +61,21 @@
                     {% if form.stock_quantity.errors %}<p class="form-error">{{ form.stock_quantity.errors|striptags }}
                     </p>{% endif %}
                 </div>
-
+                    <!-- Discontinued -->
+                <div class="form-group">
+                    <label class="form-label">Discontinued</label>
+                    <div>
+                        <label class="filter-bar__toggle">
+                            <input 
+                                type="checkbox" name="{{ form.discontinued.html_name }}"
+                                id="{{ form.discontinued.id_for_label }}" class="filter-bar__toggle-input"
+                                {% if form.discontinued.value %}checked{% endif %}>
+                            <span class="filter-bar__toggle-track">
+                                <span class="filter-bar__toggle-thumb"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
                 <!-- Categories -->
                 <div class="form-group form-group--categories">
                     <label class="form-label">Categories</label>
@@ -120,12 +134,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    setTimeout(() => {
-        document.querySelectorAll('.auto-dismiss').forEach(el => {
-            el.classList.remove('show');
-            setTimeout(() => el.remove(), 500);
-        });
-    }, 3000);
-</script>
+
 {% endblock %}

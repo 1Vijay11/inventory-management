@@ -11,9 +11,11 @@ class ProductForm(forms.ModelForm):
     
     class Meta:
         model = Product
-        fields = ['sku', 'name', 'price', 'stock_quantity', 'categories', 'subCategory']
+        fields = ['sku', 'name', 'price', 'stock_quantity', 'categories', 'subCategory', 'discontinued']
         widgets = {
             'categories': forms.CheckboxSelectMultiple(), # just here to make the category select prettier ,
+            'discontinued': forms.CheckboxInput(attrs={'class': 'toggle-input'}),
+
         }
     
     def clean_name(self):
