@@ -67,6 +67,10 @@
         <span class="site-footer__divider">·</span>
         <span class="site-footer__copy">&copy; 2026 JaydenBolton — Inventory Management System</span>
     </div>
+    <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+</form>
     {% endblock %}
 </footer>
 

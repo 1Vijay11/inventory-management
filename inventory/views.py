@@ -9,9 +9,10 @@ from django.contrib import messages # usefull when creting errors
 from django.http import JsonResponse
 import json
 from django.db.models import Sum, F
-
+from django.contrib.auth.decorators import login_required
 # Create your views here. 
 
+@login_required
 def home_page(request):
     #|||||||||||||| Defining tables ||||||||||||||
     products = Product.objects.all()
@@ -121,7 +122,7 @@ def home_page(request):
                     "combined_products" : combined_products,
                     "total_unique_items": total_unique_items,
 })
-
+@login_required
 def change_stock(request, sku):
     if request.method == "POST":
         data = json.loads(request.body)
@@ -155,7 +156,7 @@ def change_stock(request, sku):
             "total_stock_amount": total_stock_amount,
             "total_stock_value": total_stock_value,
         })
-    
+@login_required 
 def create(request):
     products = Product.objects.all() 
     category = Category.objects.all()
@@ -316,7 +317,7 @@ def create(request):
         'active_tab': active_tab,
 
     })
-
+@login_required
 def product_edit(request, sku):
     product = get_object_or_404(Product, sku=sku)
 
