@@ -17,7 +17,12 @@ class ProductForm(forms.ModelForm):
             'discontinued': forms.CheckboxInput(attrs={'class': 'toggle-input'}),
 
         }
-    
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if user:
+            self.fields['categories'].queryset = Category.objects.filter(user=user)
+            self.fields['subCategory'].queryset = SubCategory.objects.filter(user=user)
     def clean_name(self):
         name = self.cleaned_data.get('name', '').strip()
 
@@ -61,22 +66,24 @@ class ProductForm(forms.ModelForm):
             raise forms.ValidationError("SKU must be 0 or greater.")
 
         # Exclude the current product when editing so its own SKU doesn't trigger duplicate error
-        qs = Product.objects.filter(sku=sku)
+        qs = Product.objects.filter(sku=sku, user=self.user)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
 
         if qs.exists():
-            max_sku = Product.objects.aggregate(m=Max('sku'))['m'] or 0
+            max_sku = Product.objects.filter(user=self.user).aggregate(m=Max('sku'))['m'] or 0
             raise forms.ValidationError(
                 f"SKU {sku} is already taken. Next available: {max_sku + 1}"
             )
-
         return sku
 
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['name']
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user  # store for scoped duplicate check
 
     def clean_name(self):
         name = self.cleaned_data.get('name', '').strip()
@@ -85,7 +92,7 @@ class CategoryForm(forms.ModelForm):
             raise forms.ValidationError("Category name must be at least 3 characters.")
 
         # Case insensitive duplicate check
-        if Category.objects.filter(name__iexact=name).exists():
+        if Category.objects.filter(name__iexact=name, user=self.user).exists():
             raise forms.ValidationError(f'"{name}" already exists as a category.')
 
         return name.title() # title() for prettyness
@@ -93,7 +100,10 @@ class CategoryForm(forms.ModelForm):
 class SubCategoryForm(forms.ModelForm):
     class Meta:
         model = SubCategory
-        fields  = '__all__'
+        fields  = ['name']
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user  # store for scoped duplicate check
     def clean_name(self):
         name = self.cleaned_data.get('name', '').strip()
 

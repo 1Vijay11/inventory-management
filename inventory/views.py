@@ -11,14 +11,12 @@ import json
 from django.db.models import Sum, F
 from django.contrib.auth.decorators import login_required
 # Create your views here. 
-
 @login_required
 def home_page(request):
     #|||||||||||||| Defining tables ||||||||||||||
-    products = Product.objects.all()
-    categorys = Category.objects.all()
-    sub_categorys = SubCategory.objects.prefetch_related("products") # better way then doing .all()
-
+    products = Product.objects.filter(user=request.user)
+    categorys = Category.objects.filter(user=request.user)
+    sub_categorys = SubCategory.objects.filter(user=request.user)
     #|||||||||||||| Getting Dirived Values ||||||||||||||
     total_stock_value = 0
     total_stock_amount = 0
@@ -128,7 +126,7 @@ def change_stock(request, sku):
         data = json.loads(request.body)
         action = data.get("action")
 
-        product = Product.objects.get(sku=sku)
+        product = Product.objects.get(sku=sku, user=request.user)    
 
         if action == "add":
             product.stock_quantity += 1
@@ -156,16 +154,16 @@ def change_stock(request, sku):
             "total_stock_amount": total_stock_amount,
             "total_stock_value": total_stock_value,
         })
+    
 @login_required 
 def create(request):
-    products = Product.objects.all() 
-    category = Category.objects.all()
-    sub_Category = SubCategory.objects.all()
+    products = Product.objects.filter(user=request.user)
+    category = Category.objects.filter(user=request.user)
+    sub_Category = SubCategory.objects.filter(user=request.user)
 
-
-    product_form = ProductForm()
-    category_form = CategoryForm()
-    sub_category_form = SubCategoryForm()
+    product_form = ProductForm(user=request.user)
+    category_form = CategoryForm(user=request.user)
+    sub_category_form = SubCategoryForm(user=request.user)
 
     active_tab = 'manual' # track tab after refresh 
 
@@ -173,24 +171,30 @@ def create(request):
     if request.method == "POST":
 
         if "add-product" in request.POST:
-            product_form = ProductForm(request.POST) #reciving data from the form
+            product_form = ProductForm(request.POST, user=request.user) #reciving data from the form
             if product_form.is_valid(): # django making sure everything is good with the new info given        
-                product_form.save() # writes and savs to databse 
+                product = product_form.save(commit=False)  # don't save yet
+                product.user = request.user        # assign logged-in user
+                product.save()
+                product_form.save_m2m()  # IMPORTANT for categories     
                 messages.success(request, "Succesfully Added New Product")
                 return redirect('home_page') # redirects to whatever url is named inventory_list
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         elif "add-category" in request.POST :
             active_tab = 'categories'
-            category_form = CategoryForm(request.POST) #reciving data from the form
+            category_form = CategoryForm(request.POST, user=request.user) #reciving data from the form
             if category_form.is_valid(): # django making sure everything is good with the new info given
-                category_form.save() # writes and savs to databse 
-                messages.success(request, "Succesfully Added New Category")
+                
+                category = category_form.save(commit=False)  # don't save yet
+                category.user = request.user        # assign logged-in user
+                category.save()
+                category_form.save_m2m()  # IMPORTANT for categories                  messages.success(request, "Succesfully Added New Category")
                 return redirect('product_add') # redirects to whatever url is named inventory_list
 
         # ── Delete Category ───────────────────────────
         elif "delete-category" in request.POST:
             cat_id = request.POST.get("delete-category")
-            Category.objects.filter(id=cat_id).delete()
+            Category.objects.filter(id=cat_id, user=request.user).delete()
             messages.success(request, "Category deleted")
             active_tab = 'categories'
 
@@ -198,15 +202,18 @@ def create(request):
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               Sub Category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         elif "add-sub-category" in request.POST:
             active_tab = 'subcategories'
-            sub_category_form = SubCategoryForm(request.POST) #reciving data from the form
+            sub_category_form = SubCategoryForm(request.POST, user=request.user) #reciving data from the form
             if sub_category_form.is_valid(): # django making sure everything is good with the new info given
-                sub_category_form.save() # writes and savs to databse 
+                sub_category = sub_category_form.save(commit=False)  # don't save yet
+                sub_category.user = request.user        # assign logged-in user
+                sub_category.save()
+                sub_category_form.save_m2m()
                 messages.success(request, "Succesfully Added New Sub Category")
                 return redirect('product_add') # redirects to whatever url is named inventory_list
         # ── Delete Subcategory ────────────────────────
         elif "delete-subcategory" in request.POST:
             sub_id = request.POST.get("delete-subcategory")
-            SubCategory.objects.filter(id=sub_id).delete()
+            SubCategory.objects.filter(id=sub_id, user=request.user).delete()
             messages.success(request, "Subcategory deleted")
             active_tab = 'subcategories'
             # NO REDIRECT so you can continue deleting
@@ -234,6 +241,7 @@ def create(request):
                         new_product, created = Product.objects.update_or_create( # note that created is not used just her for reading purposes, as a tuple is reutnred
                             #updateOrCreate requires a lookip field and a update field
                             sku=row["sku"].strip(),   # LOOKUP FIELD - what django searches to see if it exists
+                            user=request.user,
                             defaults={               # FIELDS TO UPDATE- what to update
                                 "name": row["name"].strip(),
                                 "price": float(row["price"]),
@@ -250,16 +258,14 @@ def create(request):
                             category_name = category_name.strip()
                             if category_name :
                                 category_name = category_name.title()
-
-                                category, got_created = Category.objects.get_or_create(name=category_name)# note that created is not used just her for reading purposes, as a tuple is reutnred
+                                category, got_created = Category.objects.get_or_create(name=category_name, user=request.user)# note that created is not used just her for reading purposes, as a tuple is reutnred
                                 new_product.categories.add(category)
                                 new_product.save()
 
                         # sub Category Logic, create or add subcategory
-                        sub_category_name = row["subCategory"]
+                        sub_category_name = row.get("subCategory", "").title().strip()
                         if sub_category_name:
-                            sub_category_name = sub_category_name.title()
-                            sub_category, created = SubCategory.objects.get_or_create(name=sub_category_name)
+                            sub_category, created = SubCategory.objects.get_or_create(name=sub_category_name, user=request.user)
 
                             new_product.subCategory = sub_category
                             new_product.save()
@@ -302,7 +308,7 @@ def create(request):
 
             return redirect("home_page")
     # caclualte the sugested sku:
-    max_sku = Product.objects.aggregate(m=Max('sku'))['m'] or 0
+    max_sku = Product.objects.filter(user=request.user).aggregate(m=Max('sku'))['m'] or 0
     sugested_sku = int(max_sku) + 1
 
         #return render
@@ -319,13 +325,13 @@ def create(request):
     })
 @login_required
 def product_edit(request, sku):
-    product = get_object_or_404(Product, sku=sku)
+    product = Product.objects.get(sku=sku, user=request.user)
 
     if request.method == "POST":
         action = request.POST.get("action") # checking the name 
 
         # EDITING LOGIC
-        form = ProductForm(request.POST, instance=product) # instance=product is telling djang ot update that instance of product not create a new one
+        form = ProductForm(request.POST, instance=product, user=request.user) # instance=product is telling djang ot update that instance of product not create a new one
         if action == "save":
             if form.is_valid():
                 form.save()
@@ -337,7 +343,7 @@ def product_edit(request, sku):
             return redirect("home_page")
 
     else:
-        form = ProductForm(instance=product) #instance=product just auto fills the form with the past instance of the product
+        form = ProductForm(instance=product, user=request.user) #instance=product just auto fills the form with the past instance of the product
 
     return render(request, 'inventory/edit_product.html', {
         'form': form,
