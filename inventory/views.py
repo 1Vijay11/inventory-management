@@ -125,30 +125,26 @@ def change_stock(request, sku):
     if request.method == "POST":
         data = json.loads(request.body)
         action = data.get("action")
-
         product = Product.objects.get(sku=sku, user=request.user)    
 
         if action == "add":
             product.stock_quantity += 1
-            print("received add as out action")
 
         elif action == "minus":
-            print("received minus as out action")
             if product.stock_quantity <= 0:
-                return JsonResponse({"error": "Cannot go below 0"}) # stops the stofk from going below 0
+                return JsonResponse({"error": "Cannot go below 0"}, status=400) # stops the stofk from going below 0
             product.stock_quantity -= 1
 
         product.save()
 
         #reset values without refreshing
         #derived values calculations
-        products = Product.objects.all()
+        products = Product.objects.filter(user=request.user)
         total_stock_value = 0
         total_stock_amount = 0
         for item in products :
             total_stock_value += item.total_value
             total_stock_amount += item.stock_quantity
-        print("test this i right before we return")
         return JsonResponse({ # instead of refreshing page just return products only to our js
             "stock": product.stock_quantity,
             "total_stock_amount": total_stock_amount,

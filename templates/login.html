@@ -1,21 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'inventory/css/styles.css' %}">
+    <title>Login · Vividly Hooked</title>
 </head>
-<body>
+<body class="login-page">
 
-<h2>Login</h2>
+    <div class="login-wrapper">
+        <!-- Card -->
+        <div class="login-card">
+            <h1 class="login-card__title">Welcome back</h1>
+            <p class="login-card__sub">Sign in to your inventory dashboard</p>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
-</form>
+            {% if form.errors %}
+            <div class="login-error">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Invalid username or password. Please try again.
+            </div>
+            {% endif %}
 
-{% if form.errors %}
-    <p style="color:red;">Invalid username or password</p>
-{% endif %}
+            <form method="POST" class="login-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="id_username">Username</label>
+                    <input class="form-input" type="text" name="username"
+                        id="id_username" placeholder="Enter your username" autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_password">Password</label>
+                    <input class="form-input" type="password" name="password"
+                        id="id_password" placeholder="Enter your password">
+                </div>
+                <button type="submit" class="form-submit login-submit">
+                    Sign in
+                </button>
+            </form>
+        </div>
+
+        <p class="login-footer">&copy; 2026 JaydenBolton · Vividly Hooked inventory Management System</p>
+    </div>
 
 </body>
 </html>

@@ -25,19 +25,52 @@
     <header class="card mb-3">
         {% block header %}
 <nav class="navbar inventory-navbar">
-    <div class="container-fluid px-4">
+    <div class="container-fluid px-4 nav-container">
+
         <!-- Logo -->
         <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home_page' %}">
-            <div class="nav-logo-icon">
-                🧶
-            </div>
-            <span class="nav-logo-text"> Vividly Hooked</span>
+            <div class="nav-logo-icon">🧶</div>
+            <span class="nav-logo-text">Vividly Hooked</span>
         </a>
 
-        <!-- Nav Links -->
+        <!-- User — mobile only (next to logo) -->
+        {% if user.is_authenticated %}
+        <div class="d-flex d-sm-none align-items-center ms-auto me-2">
+            <div class="dropdown">
+                <button class="nav-user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="nav-user-avatar">{{ user.username|first|upper }}</span>
+                    <span class="nav-user-name">{{ user.username }}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end nav-user-menu">
+                    <li class="nav-user-menu__header">
+                        <span class="nav-user-menu__name">{{ user.username }}</span>
+                        <span class="nav-user-menu__email">{{ user.email }}</span>
+                    </li>
+                    <li><hr class="dropdown-divider nav-user-divider"></li>
+                    <li>
+                        <form method="POST" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-user-menu__logout">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Sign out
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Nav links + user (desktop) -->
         <div class="d-flex align-items-center gap-2">
             <a href="{% url 'home_page' %}" class="nav-btn nav-btn-active">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
                     <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
                     <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/>
@@ -46,13 +79,48 @@
                 Home
             </a>
             <a href="{% url 'product_add' %}" class="nav-btn nav-btn-ghost">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
                     <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 Add Products
             </a>
+
+            <!-- User — desktop only -->
+            {% if user.is_authenticated %}
+            <div class="nav-user-section d-none d-sm-flex align-items-center">
+                <div class="dropdown">
+                    <button class="nav-user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="nav-user-avatar">{{ user.username|first|upper }}</span>
+                        <span class="nav-user-name">{{ user.username }}</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end nav-user-menu">
+                        <li class="nav-user-menu__header">
+                            <span class="nav-user-menu__name">{{ user.username }}</span>
+                            <span class="nav-user-menu__email">{{ user.email }}</span>
+                        </li>
+                        <li><hr class="dropdown-divider nav-user-divider"></li>
+                        <li>
+                            <form method="POST" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-user-menu__logout">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                    Sign out
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
         </div>
+
     </div>
 </nav>
         {% endblock %}

@@ -109,6 +109,7 @@ nav.inventory-navbar {
     background-color: var(--surface-warm);
     border-bottom: 1px solid var(--border-warm);
     padding: 0.75rem 0;
+
 }
 
 nav.inventory-navbar .nav-logo-icon {
@@ -148,7 +149,11 @@ nav.inventory-navbar .nav-btn-active:hover {
     background-color: var(--accent-dark);
     color: #fff;
 }
+.nav-container{
+    max-width: 1350px;
+    margin: 0 auto;
 
+}
 /* Add Product */
 nav.inventory-navbar .nav-btn-ghost {
     background-color: transparent;
@@ -160,6 +165,15 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     background-color: var(--surface-warm);
     color: var(--text-dark);
     border-color: #e8b4a8;
+}
+/* ── Navbar right section ───────────────────────── */
+.nav-user-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+    margin-left: 0.5rem;
+    border-left: 1px solid var(--border-warm);
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────────
@@ -189,7 +203,93 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     font-size: 0.8rem;
     color: var(--text-subtle);
 }
+/* ── User dropdown button ───────────────────────── */
+.nav-user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.42rem 1rem;
+    background-color: transparent;
+    border: 1px solid #f0cfc5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    color: #9e7060;
+}
 
+.nav-user-btn:hover {
+    background-color: #fdf0ed;
+    border-color: #e8b4a8;
+    color: #2c1a0e;
+}
+
+.nav-user-avatar {
+    width: 20px;
+    height: 20px;
+    background-color: #e8927c;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── User dropdown menu ─────────────────────────── */
+.nav-user-menu {
+    border: 1px solid #f0ddd3;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(180, 120, 100, 0.12);
+    background-color: #fffaf7;
+    padding: 0.5rem;
+    min-width: 200px;
+}
+
+.nav-user-menu__header {
+    padding: 0.5rem 0.75rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-user-menu__name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #2c1a0e;
+}
+
+.nav-user-menu__email {
+    font-size: 0.75rem;
+    color: #b08070;
+}
+
+.nav-user-divider {
+    border-color: #f0ddd3;
+    margin: 0.25rem 0;
+}
+
+.nav-user-menu__logout {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #c0604a;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+    text-align: left;
+}
+
+.nav-user-menu__logout:hover {
+    background-color: #fdf0ed;
+}
 
 /* =============================================================================
     Home Page
@@ -1123,4 +1223,95 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 .form-delete:hover {
     background-color: #fae0da;
     border-color: var(--accent);
+}
+
+/* =============================================================================
+login Page
+   ============================================================================= */
+.login-page {
+    min-height: 100vh;
+    background-color: #9a5920;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.login-brand__icon {
+    font-size: 1.75rem;
+}
+
+.login-brand__name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2c1a0e;
+}
+
+.login-card {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #f0ddd3;
+    border-radius: 18px;
+    padding: 2rem;
+    box-shadow: 0 4px 24px rgba(180, 120, 100, 0.09);
+}
+
+.login-card__title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2c1a0e;
+    margin-bottom: 0.25rem;
+}
+
+.login-card__sub {
+    font-size: 0.875rem;
+    color: #b08070;
+    margin-bottom: 1.5rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.login-submit {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.login-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fdf0ed;
+    border: 1px solid #f0cfc5;
+    color: #c0604a;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.65rem 0.85rem;
+    border-radius: 9px;
+    margin-bottom: 1.25rem;
+}
+
+.login-footer {
+    font-size: 0.78rem;
+    color: #c4a89a;
+    margin: 0;
 }

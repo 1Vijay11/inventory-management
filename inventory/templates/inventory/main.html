@@ -434,7 +434,10 @@ document.querySelectorAll('.stock-btn').forEach(button => {
             });
 
             const data = await response.json();
-
+            if (!response.ok) { // if server reject action instantly stop - in views we return status400 if error
+                console.warn(data.error);
+                return;
+            }
             // update the product stock when button is pressed - backend updates and frontend just shows what its should look like
             const stockEl = document.getElementById(`stock-${sku}`);
             stockEl.textContent = data.stock;
@@ -462,7 +465,7 @@ document.querySelectorAll('.stock-btn').forEach(button => {
 
         } catch (err) { 
             console.error(err);
-            location.reload();
+            // location.reload();
             console.log("ran int oan error")
         } finally {
             setTimeout(() => {
