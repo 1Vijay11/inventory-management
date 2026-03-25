@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'inventory/css/styles.css' %}">
+    <title>Create Account · Vividly Hooked</title>
+</head>
+<body class="login-page">
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <h1 class="login-card__title">Create account</h1>
+        <p class="login-card__sub">Start managing your inventory</p>
+
+        <form method="POST" class="login-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input class="form-input {% if form.username.errors %}form-input--error{% endif %}"
+                    type="text" name="{{ form.username.html_name }}"
+                    placeholder="Choose a username"
+                    value="{{ form.username.value|default:'' }}">
+                {% for error in form.username.errors %}
+                    <div class="login-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input {% if form.email.errors %}form-input--error{% endif %}"
+                    type="email" name="{{ form.email.html_name }}"
+                    placeholder="your@email.com"
+                    value="{{ form.email.value|default:'' }}">
+                {% for error in form.email.errors %}
+                    <div class="login-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input class="form-input {% if form.password1.errors %}form-input--error{% endif %}"
+                    type="password" name="{{ form.password1.html_name }}"
+                    placeholder="Create a password">
+                <p class="form-hint">At least 8 characters, not entirely numeric</p>
+                {% for error in form.password1.errors %}
+                    <div class="login-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Confirm Password</label>
+                <input class="form-input {% if form.password2.errors %}form-input--error{% endif %}"
+                    type="password" name="{{ form.password2.html_name }}"
+                    placeholder="Repeat your password">
+                {% for error in form.password2.errors %}
+                    <div class="login-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="form-submit login-submit">Create Account</button>
+        </form>
+
+        <p class="login-card__switch">
+            Already have an account? <a href="{% url 'login' %}">Sign in</a>
+        </p>
+    </div>
+
+
+    <p class="login-footer">&copy; 2026 JaydenBolton · Vividly Hooked</p>
+</div>
+
+</body>
+</html>

@@ -4,12 +4,15 @@ from .models import Product, Category, SubCategory
 from django.db.models import Q, Max# used for adding and/or/not in more advanced wher clauses
 from csv import DictWriter, DictReader
 import csv
+from django.http import HttpResponse
 import io
 from django.contrib import messages # usefull when creting errors
 from django.http import JsonResponse
 import json
 from django.db.models import Sum, F
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login
+from .forms import CustomUserCreationForm
 # Create your views here. 
 @login_required
 def home_page(request):
@@ -320,6 +323,38 @@ def create(request):
 
     })
 @login_required
+def export_products_csv(request):
+    # Create response with CSV header
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="products.csv"'
+
+    writer = csv.writer(response)
+
+    writer.writerow([
+        "name", "sku", "price", "stock", "category", "subCategory", "discontinued"
+    ])
+
+    products = Product.objects.filter(user=request.user)
+
+    for product in products:
+        categories = ", ".join(
+            c.name for c in product.categories.all()
+        )
+
+        sub_category = product.subCategory.name if product.subCategory else ""
+
+        writer.writerow([
+            product.name,
+            product.sku,
+            product.price,
+            product.stock_quantity,
+            categories,
+            sub_category,
+            product.discontinued
+        ])
+
+    return response
+@login_required
 def product_edit(request, sku):
     product = Product.objects.get(sku=sku, user=request.user)
 
@@ -345,4 +380,18 @@ def product_edit(request, sku):
         'form': form,
         'product': product
     })
+# Login not required
+def signup(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            user.email = form.cleaned_data["email"]
+            user.save()
+            login(request, user)  # auto login after signup
+            messages.success(request, "Account created successfully!")
+            return redirect("home_page")
+    else:
+        form = CustomUserCreationForm()
 
+    return render(request, "inventory/signup.html", {"form": form})

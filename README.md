@@ -8,29 +8,29 @@ This project was developed independently to demonstrate backend data modeling, f
 
 ## 🌐 Live Demo
 
-🔗 **Live Application:** [Add your Render link here]
+🔗 **Live Application:** https://inventory-management-7aa1.onrender.com/ 
 
-### Demo Account (for employers/reviewers)
+### Demo Test Account 
 > A demo account is provided for evaluation purposes:
 
-- **Username:** [add here]
-- **Password:** [add here]
+- **Username:** [TestAccount]
+- **Password:** [Test1234]
 
 ---
 
-## 🚀 Features
+## Features
 
-### 📦 Inventory Management
+### Inventory Management
 - Create, edit, and manage products
 - Track stock quantities and pricing
 - Mark items as discontinued
 
-### ⚡ Real-Time Stock Updates
+### Real-Time Stock Updates
 - Increment/decrement stock without page refresh
 - Uses JavaScript (Fetch API) with Django backend
 - UI updates instantly after server response
 
-### 🔍 Advanced Filtering & Search
+### Advanced Filtering & Search
 - Search products by name
 - Filter by **multiple categories**
 - Toggle:
@@ -38,7 +38,7 @@ This project was developed independently to demonstrate backend data modeling, f
   - Discontinued items
 - Filters persist across sorting
 
-### ↕️ Sorting System
+###  Sorting System
 - Sort by:
   - Name
   - SKU
@@ -47,18 +47,18 @@ This project was developed independently to demonstrate backend data modeling, f
 - Supports ascending and descending order
 - Maintains filters during sorting
 
-### 🗂️ Subcategory Grouping
+### Subcategory Grouping
 - Products grouped under subcategories
 - Collapsible rows for better organization
 - Aggregated values displayed per subcategory
 
-### 📊 Derived Data
+### Derived Data
 - Total inventory value
 - Total stock count
 - Per-product total value (price × stock)
 - Subcategory-level aggregations
 
-### 🎨 Custom UI/UX
+### Custom UI/UX
 - Fully custom styling using CSS variables
 - Responsive layout (mobile-friendly table behavior)
 - Visual indicators:
@@ -74,13 +74,13 @@ This project was developed independently to demonstrate backend data modeling, f
 - Python
 - Django
 - Django ORM
-- PostgreSQL (via Neon)
+- PostgreSQL 
 
 ### Frontend
 - HTML (Django Templates)
-- CSS (custom design system)
-- JavaScript (Fetch API / AJAX)
-- Bootstrap (customized)
+- CSS 
+- JavaScript (Simple ui/ux enhansments)
+- Bootstrap 
 
 ### Deployment
 - Render (web hosting)
@@ -88,14 +88,14 @@ This project was developed independently to demonstrate backend data modeling, f
 
 ---
 
-## 🗄️ Database Design
-
-The application uses a relational database with three main models:
+## Database Design
 
 ### Tables
 - **Product**
 - **Category**
 - **SubCategory**
+
+
 
 ### Relationships
 - A **Product** can belong to multiple **Categories** (Many-to-Many)
@@ -117,13 +117,13 @@ The application uses a relational database with three main models:
 
 ---
 
-## 🧩 Entity Relationship Diagram
+##  Entity Relationship Diagram
 
 ![ERD Placeholder](./docs/erd-placeholder.png)
 
 ---
 
-## ⚙️ How It Works
+##  How It Works
 
 ### Filtering & Sorting
 - Uses query parameters (`GET`) to handle filtering and sorting
@@ -143,17 +143,7 @@ The application uses a relational database with three main models:
 
 ---
 
-## 🎯 UI / UX Design Decisions
-
-- Collapsible subcategories reduce visual clutter
-- Inline stock controls improve efficiency
-- Mobile responsiveness handled by selectively hiding columns
-- Consistent design system using reusable CSS variables
-- Feedback system (alerts) designed to be non-intrusive but interactive
-
----
-
-## 📸 Screenshots
+## Screenshots
 
 ### Dashboard
 ![Dashboard Placeholder](./docs/dashboard.png)
@@ -177,17 +167,32 @@ The application uses a relational database with three main models:
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
-- Implement a **safe delete system**
-- Enhance sorting capabilities across more fields
-- Improve search with partial matching and advanced filters
-- Expand category system for more flexible organization
-- Add authentication system with role-based access
 
+- **Authentication Enhancements**
+  - Add email verification for new accounts  
+  - Implement secure password reset functionality  
+
+- **Market Mode (Live Sales Tracking)**
+  - Track sales in real-time during events or markets  
+  - Display live metrics such as total revenue and items sold  
+  - Provide a dedicated interface for managing active sales sessions  
+
+- **Market History & Reporting**
+  - Store completed market sessions for future reference  
+  - Generate insights such as:
+    - Revenue per event  
+    - Product performance  
+    - Sales trends over time  
+  - Compare performance across multiple markets  
+
+- **Automated Inventory Updates**
+  - Deduct sold quantities from stock after each market session  
+  - Keep inventory accurate without manual adjustments 
 ---
 
-## 🧪 Local Setup
+## Local Setup
 
 ```bash
 # Clone the repository

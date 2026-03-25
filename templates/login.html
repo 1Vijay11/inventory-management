@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,44 +10,47 @@
     <link rel="stylesheet" href="{% static 'inventory/css/styles.css' %}">
     <title>Login · Vividly Hooked</title>
 </head>
+
 <body class="login-page">
 
-    <div class="login-wrapper">
-        <!-- Card -->
-        <div class="login-card">
-            <h1 class="login-card__title">Welcome back</h1>
-            <p class="login-card__sub">Sign in to your inventory dashboard</p>
+<div class="login-wrapper"> 
+    <div class="login-card">
+        <h1 class="login-card__title">Welcome back</h1>
+        <p class="login-card__sub">Sign in to your inventory dashboard</p>
 
-            {% if form.errors %}
-            <div class="login-error">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                Invalid username or password. Please try again.
-            </div>
-            {% endif %}
-
-            <form method="POST" class="login-form">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label class="form-label" for="id_username">Username</label>
-                    <input class="form-input" type="text" name="username"
-                        id="id_username" placeholder="Enter your username" autofocus>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="id_password">Password</label>
-                    <input class="form-input" type="password" name="password"
-                        id="id_password" placeholder="Enter your password">
-                </div>
-                <button type="submit" class="form-submit login-submit">
-                    Sign in
-                </button>
-            </form>
+        {% if form.errors %}
+        <div class="login-error">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Invalid username or password. Please try again.
         </div>
+        {% endif %}
 
-        <p class="login-footer">&copy; 2026 JaydenBolton · Vividly Hooked inventory Management System</p>
+        <form method="POST" class="login-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="id_username">Username</label>
+                <input class="form-input" type="text" name="username"
+                    id="id_username" placeholder="Enter your username" autofocus>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="id_password">Password</label>
+                <input class="form-input" type="password" name="password"
+                    id="id_password" placeholder="Enter your password">
+            </div>
+            <button type="submit" class="form-submit login-submit">Sign in</button>
+        </form>
+
+        <p class="login-card__switch">
+            Don't have an account? <a href="{% url 'signup' %}">Create one</a>
+        </p>
     </div>
 
+    <p class="login-footer">&copy; 2026 JaydenBolton · Vividly Hooked</p>
+</div>
+
 </body>
+
 </html>

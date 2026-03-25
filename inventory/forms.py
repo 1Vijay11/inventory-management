@@ -1,6 +1,8 @@
 from django import forms
 from .models import Product, Category, SubCategory
 from django.db.models import Max # this is used when i query the max sku so i can sugest the next best sku
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 class ProductForm(forms.ModelForm):
     subCategory = forms.ModelChoiceField( # this is used to give a drop down and a single select for subcategory 
@@ -110,7 +112,13 @@ class SubCategoryForm(forms.ModelForm):
         if len(name) < 3:
             raise forms.ValidationError("Subcategory name must be at least 3 characters.")
 
-        if SubCategory.objects.filter(name__iexact=name).exists():
+        if SubCategory.objects.filter(name__iexact=name, user=self.user).exists():
             raise forms.ValidationError(f'"{name}" already exists as a subcategory.')
 
         return name.title()
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password1", "password2"]

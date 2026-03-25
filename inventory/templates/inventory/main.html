@@ -122,6 +122,8 @@
             
             <!-- Search Submit (triggered by input or category apply) -->
             <button type="submit" class="filter-bar__search-btn">Search</button>
+
+
         </form>
     </div>
 
@@ -224,6 +226,18 @@
                                 <!-- ||||||||||||||||||||||      CATEGORY        ||||||||||||||||||||||||||| -->
                                  <!-- Hidden On Mobile -->
                         <th class="d-none d-md-table-cell"><div class="th-btn th-btn--static">Category</div></th>
+
+                                <!-- ||||||||||||||||||||||      Export CSV        ||||||||||||||||||||||||||| -->
+                                 <!-- only shows on larger screens - laptops and computers -->
+                        <th class="d-none d-lg-table-cell">
+                            <a href="{% url 'export_csv' %}" class="export-btn">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 15V3M12 15L8 11M12 15L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Export
+                            </a>
+                        </th>
                     </tr>
                 </thead>
         
@@ -271,7 +285,7 @@
                                             class="stock-btn stock-btn--add"
                                             data-sku="{{ item.sku }}" 
                                             data-action="add">
-                                            +
+                                            +   
                                         </button>
                                     </div>
                                 </td>
@@ -283,6 +297,8 @@
                                         <span class="category-tag">{{ category.name }}</span>
                                     {% endfor %}
                                 </td>
+                                    <!-- Export button -->
+                                 <td class="d-none d-lg-table-cell"></td>
                             </tr>
 
 
@@ -319,6 +335,8 @@
                                 <td class="d-none d-md-table-cell price-cell">${{ item.total_value }}</td>
                                 <!-- Category space -->
                                 <td class="d-none d-md-table-cell"></td>
+                                 <!-- Export button -->
+                                <td class="d-none d-lg-table-cell"></td>
                             </tr>
 
                             <!-- ||||||||||||||||||||||||||||||||||||||         Subcategory child rows           |||||||||||||||||||||||||||||||||||||||||-->
@@ -363,6 +381,8 @@
                                                 <span class="category-tag">{{ category.name }}</span>
                                             {% endfor %}
                                         </td>
+                                        <!-- Export button -->
+                                         <td class="d-none d-lg-table-cell"></td>
                                     </tr>
                                 {% endif %}
                             {% endfor %}
