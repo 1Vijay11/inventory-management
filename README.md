@@ -12,7 +12,7 @@ This project was developed independently to demonstrate backend data modeling, f
 
 ### Demo Test Account 
 
-- **Username:** [TestAccount]
+- **Username:** [Test]
 - **Password:** [12Test34]
 
 ---

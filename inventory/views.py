@@ -26,10 +26,9 @@ def home_page(request):
     for product in products :
         total_stock_value += product.total_value
         total_stock_amount += product.stock_quantity
-    products_without_sub_category = products.filter(subCategory__isnull=True) 
-    total_unique_items = products_without_sub_category.count() + sub_categorys.count()
-
-
+    products_without_sub_category = products.filter(user=request.user, subCategory__isnull=True) 
+    sub_categorys_with_products = SubCategory.objects.filter( user=request.user, products__isnull=False).distinct()
+    total_unique_items = products_without_sub_category.count() + sub_categorys_with_products.count()
 
     #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
