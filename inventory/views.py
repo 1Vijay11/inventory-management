@@ -1,19 +1,25 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from .forms import ProductForm, CategoryForm, SubCategoryForm
-from .models import Product, Category, SubCategory
-from django.db.models import Q, Max# used for adding and/or/not in more advanced wher clauses
-from csv import DictWriter, DictReader
-import csv
-from django.http import HttpResponse
-import io
-from django.contrib import messages # usefull when creting errors
-from django.http import JsonResponse
-import json
-from django.db.models import Sum, F
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
-from .forms import CustomUserCreationForm
-# Create your views here. 
+from django.shortcuts import render, redirect  # render templates, redirect users, fetch objects safely
+from django.http import HttpResponse, JsonResponse  # standard and JSON responses
+from django.contrib.auth import login  # log users in after signup/login
+from django.contrib.auth.decorators import login_required  # restrict views to authenticated users
+from django.contrib import messages  # display success/error messages to users
+# Database queries & ORM tools
+from django.db.models import Q, Max, Sum, F  # advanced queries, aggregations, and field operations
+from .models import Product, Category, SubCategory  # database tables for your app
+# Forms
+from .forms import (
+    ProductForm,
+    CategoryForm,
+    SubCategoryForm,
+    CustomUserCreationForm,
+) 
+# CSV handling
+import csv  
+from csv import DictWriter, DictReader  # read/write CSVs as dictionaries
+# Utilities
+import io  # handle in-memory file operations (e.g., CSV export)
+import json  # parse/generate JSON data
+
 @login_required
 def home_page(request):
     #|||||||||||||| Defining tables ||||||||||||||
