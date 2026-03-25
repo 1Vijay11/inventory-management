@@ -130,12 +130,6 @@ Rather than being a generic inventory system, this project focuses on solving pr
 
 ---
 
-##  Entity Relationship Diagram
-
-![ERD Placeholder](./docs/erd-placeholder.png)
-
----
-
 ##  How It Works
 
 ### Filtering & Sorting
