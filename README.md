@@ -11,10 +11,23 @@ This project was developed independently to demonstrate backend data modeling, f
 🔗 **Live Application:** https://inventory-management-7aa1.onrender.com/ 
 
 ### Demo Test Account 
-> A demo account is provided for evaluation purposes:
 
 - **Username:** [TestAccount]
-- **Password:** [Test1234]
+- **Password:** [12Test34]
+
+---
+
+##  Project Background
+
+This system was originally built for a small crochet business, with features tailored to how the user manages their inventory in real life.
+
+Several design decisions reflect these specific requirements:
+
+- **Integer-based SKU system** to allow easy sorting and quick identification of products  
+- **Flexible category and subcategory structure** to organize differnet coloured products, and categorys like keychains
+- **Highly personalized UI styling**, including a bold color palette, to match the user's brand and preferences  
+
+Rather than being a generic inventory system, this project focuses on solving practical problems for an individual user, which influenced both the functionality and design choices.
 
 ---
 
@@ -68,7 +81,7 @@ This project was developed independently to demonstrate backend data modeling, f
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 - Python
@@ -146,16 +159,16 @@ This project was developed independently to demonstrate backend data modeling, f
 ## Screenshots
 
 ### Dashboard
-![Dashboard Placeholder](./docs/dashboard.png)
+![](docs/inventory-managment-home-page.png)
 
 ### Filtering & Search
-![Filter Placeholder](./docs/filter.png)
+![](docs/inventory-managment-sort-example.png)
 
 ### Subcategory View
-![Subcategory Placeholder](./docs/subcategory.png)
+![](docs/inventory-managment-subCategory-exmaple.png)
 
 ### Add/Edit Product
-![Form Placeholder](./docs/form.png)
+![](docs/inventory-managment-add-product-example.png)
 
 ---
 

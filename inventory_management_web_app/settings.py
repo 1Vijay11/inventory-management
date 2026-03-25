@@ -144,5 +144,3 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home_page'
 LOGOUT_REDIRECT_URL = 'login'
 
-# for testing purposes. send email through terminal insted of email. easy for testing
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

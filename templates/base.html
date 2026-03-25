@@ -26,13 +26,6 @@
         {% block header %}
 <nav class="navbar inventory-navbar">
     <div class="container-fluid px-4 nav-container">
-
-        <!-- Logo -->
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home_page' %}">
-            <div class="nav-logo-icon">🧶</div>
-            <span class="nav-logo-text">Vividly Hooked</span>
-        </a>
-
         <!-- User — mobile only (next to logo) -->
         {% if user.is_authenticated %}
         <div class="d-flex d-sm-none align-items-center ms-auto me-2">
