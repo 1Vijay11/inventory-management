@@ -26,14 +26,23 @@ def home_page(request):
     products = Product.objects.filter(user=request.user)
     categorys = Category.objects.filter(user=request.user)
     sub_categorys = SubCategory.objects.filter(user=request.user)
-    #|||||||||||||| Getting Dirived Values ||||||||||||||
-    total_stock_value = 0
-    total_stock_amount = 0
-    for product in products :
-        total_stock_value += product.total_value
-        total_stock_amount += product.stock_quantity
-    products_without_sub_category = products.filter(user=request.user, subCategory__isnull=True) 
-    sub_categorys_with_products = SubCategory.objects.filter( user=request.user, products__isnull=False).distinct()
+    #|||||||||||||| Getting Derived Values ||||||||||||||
+    active_products = products.filter(discontinued=False)
+    print(active_products)
+
+    total_stock_value = active_products.aggregate(
+        total=Sum(F('price') * F('stock_quantity'))
+    )['total'] or 0
+
+    total_stock_amount = active_products.aggregate(
+        total=Sum('stock_quantity')
+    )['total'] or 0
+
+    products_without_sub_category = products.filter(subCategory__isnull=True)
+    sub_categorys_with_products = SubCategory.objects.filter(
+        user=request.user, 
+        products__isnull=False).distinct()
+
     total_unique_items = products_without_sub_category.count() + sub_categorys_with_products.count()
 
     #|||||||||||||| search logic ||||||||||||||
@@ -147,16 +156,25 @@ def change_stock(request, sku):
 
         #reset values without refreshing
         #derived values calculations
-        products = Product.objects.filter(user=request.user)
-        total_stock_value = 0
-        total_stock_amount = 0
-        for item in products :
-            total_stock_value += item.total_value
-            total_stock_amount += item.stock_quantity
-        return JsonResponse({ # instead of refreshing page just return products only to our js
+        active_products = Product.objects.filter(user=request.user, discontinued=False)
+        total_stock_value = active_products.aggregate(
+            total=Sum(F('price') * F('stock_quantity'))
+        )['total'] or 0
+        total_stock_amount = active_products.aggregate(
+            total=Sum('stock_quantity')
+        )['total'] or 0
+
+        # Return subcategory stock if product belongs to one
+        subcategory_stock = None
+        if product.subCategory:
+            subcategory_stock = product.subCategory.total_stock  # uses our updated property
+
+        return JsonResponse({
             "stock": product.stock_quantity,
             "total_stock_amount": total_stock_amount,
             "total_stock_value": total_stock_value,
+            "subcategory_stock": subcategory_stock,
+            "subcategory_sku": product.subCategory.sku if product.subCategory else None,
         })
     
 @login_required 

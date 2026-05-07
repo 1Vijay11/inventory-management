@@ -1,6 +1,6 @@
 from django.db import models
 from django.db.models import CheckConstraint, Q
-from django.db.models import Min, Max
+from django.db.models import Q, Max, Min, Sum, F  # advanced queries, aggregations, and field operations
 from django.contrib.auth.models import User
 # Create your models here.
 
@@ -18,16 +18,14 @@ class SubCategory(models.Model):
         unique_together = ('user', 'name')
     @property 
     def total_value(self):
-        products = self.products.all() # products being the related name we have in class Product
-
-        total = 0
-        for product in products :
-            total += product.total_value
-        return total
-    @property 
-    def total_value(self):
-        products = self.products.filter(user=self.user)
-        return sum(p.total_value for p in products)
+        from django.db.models import Sum, F
+        result = self.products.filter(
+            user=self.user, 
+            discontinued=False
+        ).aggregate(
+            total=Sum(F('price') * F('stock_quantity'))
+        )['total']
+        return result or 0
 
     @property
     def price(self):
@@ -43,9 +41,12 @@ class SubCategory(models.Model):
 
     @property
     def total_stock(self):
-        return sum(
-            p.stock_quantity for p in self.products.filter(user=self.user)
-        )
+        return self.products.filter(
+            user=self.user,
+            discontinued=False
+        ).aggregate(
+            total=Sum('stock_quantity')
+        )['total'] or 0
 
     @property
     def price_display(self):

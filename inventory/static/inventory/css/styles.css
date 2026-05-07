@@ -725,6 +725,8 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     margin-left: 6px;
     vertical-align: middle;
 }
+/* for the subcetogry childs */
+.discontinued-row td { opacity: 0.6; }
 
 /* ── SKU Badge ────────────────────────────────────────────────────────────── */
 .sku-badge {

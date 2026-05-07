@@ -342,10 +342,18 @@
                             <!-- ||||||||||||||||||||||||||||||||||||||         Subcategory child rows           |||||||||||||||||||||||||||||||||||||||||-->
                             {% for product in item.object.products.all %}
                                 {% if product in filtered_sub_category_list %}
-                                    <tr class="collapse collapse-row subcategory-child" id="{{ item.sku }}"data-parent="{{ item.sku }}" >
+                                    <tr class="collapse collapse-row subcategory-child {% if product.discontinued %}discontinued-row{% endif %}" 
+                                        id="{{ item.sku }}" 
+                                        data-parent="{{ item.sku }}">
                                         <!-- Product Name -->
                                         <td>
-                                            <a href="{% url 'product_edit' sku=product.sku %}" class="product-link product-link--indented">{{ product.name }}</a>
+                                            <a href="{% url 'product_edit' sku=product.sku %}" 
+                                                class="product-link product-link--indented {% if product.discontinued %}product-link--discontinued{% endif %}">
+                                                {{ product.name }}
+                                            </a>
+                                            {% if product.discontinued %}
+                                                <span class="discontinued-pill">discontinued</span>
+                                            {% endif %}
                                         </td>
                                         <!-- Product SKu - hidden on Mobile -->
                                         <td class="d-none d-md-table-cell"><span class="sku-badge">{{ product.sku }}</span></td>
@@ -462,27 +470,17 @@ document.querySelectorAll('.stock-btn').forEach(button => {
             const stockEl = document.getElementById(`stock-${sku}`);
             stockEl.textContent = data.stock;
 
-            // update subcategory total
-            const row = button.closest('tr');
-            const parentSku = row.dataset.parent;
-
-            if (parentSku) {
-                const subStockEl = document.getElementById(`subcategory-stock-${parentSku}`);
-
+            // update subcategory total using real backend value
+            if (data.subcategory_stock !== null && data.subcategory_sku !== null) {
+                const subStockEl = document.getElementById(`subcategory-stock-${data.subcategory_sku}`);
                 if (subStockEl) {
-                    let current = parseInt(subStockEl.textContent);
-
-                    if (action === "add") current += 1;
-                    if (action === "minus") current -= 1;
-
-                    subStockEl.textContent = current;
+                    subStockEl.textContent = data.subcategory_stock;
                 }
             }
-            // update card total without refresh
+
+            // update dashboard cards
             document.getElementById('total-stock-amount').textContent = data.total_stock_amount;
-
             document.getElementById('total-stock-value').textContent = `$${data.total_stock_value}`;
-
         } catch (err) { 
             console.error(err);
             // location.reload();
