@@ -8,7 +8,7 @@
     /* — Surface colors (light warm backgrounds) — */
     --surface-page:     #fffaf7;   /* Page / table card background */
     --surface-warm:     #ffeceb;   /* Used by: navbar, search bar, filter bar, tab strip */
-    --surface-sub:      #fff2f2;   /* Subcategory row background */
+    --surface-sub:      #ffebeb;   /* Subcategory row background */
     --surface-sub-child: #fff8f7;   /* Subcategory child row background */
     --surface-white:    #ffffff;   /* Inputs, existing-item tiles, search bar */
     --surface-selected: #ffe7e2;   /* Row hover, selected subcategory state */

@@ -290,7 +290,7 @@
                                     </div>
                                 </td>
                                 <!-- ||||||||||||||||||||||      Total Value - hidden on Mobile        ||||||||||||||||||||||||||| -->
-                                <td class="d-none d-md-table-cell price-cell">${{ item.total_value }}</td>
+                                <td class="d-none d-md-table-cell price-cell" id="total_value-{{item.sku}}">${{ item.total_value }}</td>
                                 <!-- ||||||||||||||||||||||      Category - hiden on mobile        ||||||||||||||||||||||||||| -->
                                 <td class="d-none d-md-table-cell">
                                     {% for category in item.categories.all %}
@@ -382,7 +382,7 @@
                                             </div>
                                         </td>
                                         <!-- Total Value - hidden on mobile -->
-                                        <td class="d-none d-md-table-cell price-cell">${{ product.total_value }}</td>
+                                        <td class="d-none d-md-table-cell price-cell" id="total_value-{{ product.sku }}">${{ product.total_value }}</td>
                                         <!-- category - hiddeon on mobile -->
                                         <td class="d-none d-md-table-cell">
                                             {% for category in product.categories.all %}
@@ -469,7 +469,8 @@ document.querySelectorAll('.stock-btn').forEach(button => {
             // update the product stock when button is pressed - backend updates and frontend just shows what its should look like
             const stockEl = document.getElementById(`stock-${sku}`);
             stockEl.textContent = data.stock;
-
+            const totalValueEl = document.getElementById(`total_value-${sku}`);
+            totalValueEl.textContent = data.total_value;
             // update subcategory total using real backend value
             if (data.subcategory_stock !== null && data.subcategory_sku !== null) {
                 const subStockEl = document.getElementById(`subcategory-stock-${data.subcategory_sku}`);

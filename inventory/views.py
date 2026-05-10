@@ -28,7 +28,6 @@ def home_page(request):
     sub_categorys = SubCategory.objects.filter(user=request.user)
     #|||||||||||||| Getting Derived Values ||||||||||||||
     active_products = products.filter(discontinued=False)
-    print(active_products)
 
     total_stock_value = active_products.aggregate(
         total=Sum(F('price') * F('stock_quantity'))
@@ -171,6 +170,7 @@ def change_stock(request, sku):
 
         return JsonResponse({
             "stock": product.stock_quantity,
+            "total_value": product.total_value,
             "total_stock_amount": total_stock_amount,
             "total_stock_value": total_stock_value,
             "subcategory_stock": subcategory_stock,
