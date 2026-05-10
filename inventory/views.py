@@ -26,23 +26,7 @@ def home_page(request):
     products = Product.objects.filter(user=request.user)
     categorys = Category.objects.filter(user=request.user)
     sub_categorys = SubCategory.objects.filter(user=request.user)
-    #|||||||||||||| Getting Derived Values ||||||||||||||
-    active_products = products.filter(discontinued=False)
 
-    total_stock_value = active_products.aggregate(
-        total=Sum(F('price') * F('stock_quantity'))
-    )['total'] or 0
-
-    total_stock_amount = active_products.aggregate(
-        total=Sum('stock_quantity')
-    )['total'] or 0
-
-    products_without_sub_category = products.filter(subCategory__isnull=True)
-    sub_categorys_with_products = SubCategory.objects.filter(
-        user=request.user, 
-        products__isnull=False).distinct()
-
-    total_unique_items = products_without_sub_category.count() + sub_categorys_with_products.count()
 
     #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
@@ -115,6 +99,31 @@ def home_page(request):
         key=lambda x: x[sort_key] if x[sort_key] is not None else 0,
         reverse=reverse
     )
+    #|||||||||||||| Getting Derived Values ||||||||||||||
+    active_products = Product.objects.filter(user=request.user, discontinued=False)
+    products = products.filter(discontinued=False)
+
+    # total_stock_value = products.aggregate(
+    #     total=Sum(F('price') * F('stock_quantity'))
+    # )['total'] or 0
+    total_stock_value = 0
+    for product in combined_products :
+        total_stock_value += product["total_value"]
+
+    total_stock_amount = 0
+    for product in combined_products :
+        total_stock_amount += product["stock_quantity"]
+
+    # total_stock_amount = products.aggregate(
+    #     total=Sum('stock_quantity')
+    # )['total'] or 0
+
+    products_without_sub_category = active_products.filter(subCategory__isnull=True)
+    sub_categorys_with_products = SubCategory.objects.filter(
+        user=request.user, 
+        products__isnull=False).distinct()
+
+    total_unique_items = products_without_sub_category.count() + sub_categorys_with_products.count()
     # |||||||||||||| defining base query ||||||||||||||
     #here to stop values from resseting after new from sumbits
     base_query = request.GET.copy()
