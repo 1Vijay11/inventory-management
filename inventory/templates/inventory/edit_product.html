@@ -57,7 +57,7 @@
                     <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Quantity</label>
                     <input class="form-input {% if form.stock_quantity.errors %}form-input--error{% endif %}"
                         type="number" name="{{ form.stock_quantity.html_name }}"
-                        id="{{ form.stock_quantity.id_for_label }}" value="{{ form.stock_quantity.value|default:'' }}">
+                        id="{{ form.stock_quantity.id_for_label }}" value="{{ form.stock_quantity.value|default:'0' }}">
                     {% if form.stock_quantity.errors %}<p class="form-error">{{ form.stock_quantity.errors|striptags }}
                     </p>{% endif %}
                 </div>
