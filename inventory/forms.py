@@ -1,5 +1,5 @@
 from django import forms
-from .models import Product, Category, SubCategory
+from .models import Product, Category, SubCategory, PatternFile
 from django.db.models import Max # this is used when i query the max sku so i can sugest the next best sku
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
@@ -122,3 +122,36 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ["username", "email", "password1", "password2"]
+
+
+
+class ProductEditForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['sku', 'name', 'price', 'stock_quantity', 'categories', 'subCategory', 'discontinued']
+        # removed both 'image' and 'description'
+        widgets = {
+            'categories': forms.CheckboxSelectMultiple(),
+            'discontinued': forms.CheckboxInput(attrs={'class': 'toggle-input'}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if user:
+            self.fields['categories'].queryset = Category.objects.filter(user=user)
+            self.fields['subCategory'].queryset = SubCategory.objects.filter(user=user)
+
+    # reuse all the same clean methods from ProductForm
+    clean_name = ProductForm.clean_name
+    clean_stock_quantity = ProductForm.clean_stock_quantity
+    clean_price = ProductForm.clean_price
+    clean_sku = ProductForm.clean_sku
+
+class PatternFileForm(forms.ModelForm):
+    class Meta:
+        model = PatternFile
+        fields = ['name', 'file']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'e.g. Main pattern...'}),
+        }

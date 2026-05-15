@@ -929,7 +929,7 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 /* ── Form Card ────────────────────────────────────────────────────────────── */
 
 .form-card {
-    background-color: var(--surface-page);
+    background-color: var(--surface-sub-child);
     border: 1px solid var(--border-table);
     border-radius: 16px;
     overflow: hidden;
@@ -1191,8 +1191,246 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 
 
 /* =============================================================================
-   EDIT PRODUCT PAGE
+   EDIT PRODUCT PAGE — single card layout
    ============================================================================= */
+
+/* ── Section dividers inside the single card ─────────────────────────────── */
+.edit-section {
+    padding: 1.75rem 1.75rem;
+}
+
+.edit-section--divider {
+    border-top: 1px solid var(--border-table);
+}
+
+.edit-section__label {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-subtle);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.edit-section__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--border-row);
+}
+
+/* ── Hero row: image left, description right ──────────────────────────────── */
+.edit-hero-row {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.edit-hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* ── Image frame ──────────────────────────────────────────────────────────── */
+.edit-image-frame {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 4px var(--surface-warm),
+        0 0 0 5px var(--border-warm),
+        0 8px 24px rgba(180, 120, 100, 0.18);
+    flex-shrink: 0;
+}
+
+.edit-image {
+    width: 220px;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 16px;
+    display: block;
+}
+
+.edit-image__placeholder {
+    width: 220px;
+    height: 220px;
+    border-radius: 16px;
+    border: 2px dashed var(--border-mid);
+    background-color: var(--surface-warm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.edit-image__placeholder:hover {
+    border-color: var(--accent);
+    background-color: var(--surface-selected);
+    color: var(--accent-dark);
+}
+
+
+.edit-image__input { display: none; }
+
+/* X overlay — appears on image hover */
+.edit-image__remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    color: #fff;
+}
+
+.edit-image-frame:hover .edit-image__remove { opacity: 1; }
+
+/* ── Product title — sits below frame, outside it ────────────────────────── */
+.edit-product-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-subtle);
+    text-align: center;
+    margin: 0;
+    max-width: 220px;
+    word-break: break-word;
+}
+.edit-hero-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0; /* prevents flex overflow */
+}
+.form-textarea {
+    resize: vertical;
+    min-height: 220px;
+    line-height: 1.6;
+    flex: 1;
+    width: 100%;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.750rem;
+    font-style: normal;
+    text-shadow: #2c1a0e;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-textarea::placeholder {
+    color: var(--text-faint);
+    font-style: italic;
+}
+/* ── Pattern files — full width below hero row ────────────────────────────── */
+.edit-pattern-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-row);
+}
+
+.pattern-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--border-mid);
+    border-radius: 9px;
+    background-color: var(--surface-white);
+    transition: background-color 0.12s ease;
+}
+
+.pattern-item:hover { background-color: var(--surface-selected); }
+
+.pattern-item__info {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.pattern-item__icon { color: var(--text-subtle); flex-shrink: 0; }
+
+.pattern-item__name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-dark);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.pattern-item__name:hover { color: var(--text-dark); text-decoration: underline; }
+
+.pattern-item__delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-faint);
+    cursor: pointer;
+    margin-left: 0.35rem;
+    padding: 0 0 0 0.5rem;
+    border: none;
+    border-left: 1px solid var(--border-row);
+    background: transparent;
+    transition: color 0.15s ease;
+}
+
+.pattern-item__delete-btn:hover { color: var(--danger); }
+
+
+/* ── New pattern upload row ───────────────────────────────────────────────── */
+.pattern-upload-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+    border: 1px dashed var(--border-mid);
+    border-radius: 9px;
+    background-color: var(--danger-surface);
+}
+
+.pattern-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.4rem 0.9rem;
+    background-color: var(--accent);
+    border: 1px solid var(--border-mid);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pattern-add-btn:hover {
+    background-color: var(--surface-warm);
+    color: var(--accent-dark);
+    border-color: var(--accent);
+}
 
 /* ── Back Link ────────────────────────────────────────────────────────────── */
 .edit-back-link {
@@ -1240,6 +1478,52 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     border-color: var(--accent);
 }
 
+.pattern-upload-row input[type="file"] {
+    padding: 0.45rem 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.pattern-upload-row input[type="file"]::file-selector-button {
+    padding: 0.35rem 0.85rem;
+    background-color: var(--border-row);
+    border: 1px solid var(--border-mid);
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-right: 0.75rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pattern-upload-row input[type="file"]::file-selector-button:hover {
+    background-color: var(--surface-selected);
+    color: var(--accent-dark);
+    border-color: var(--accent);
+}
+
+@media (max-width: 767.98px) {
+    .edit-hero-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .edit-hero-right {
+        width: 100%;
+    }
+
+    .form-textarea {
+        min-height: 150px;
+    }
+
+    .pattern-upload-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
 /* =============================================================================
 login Page
    ============================================================================= */

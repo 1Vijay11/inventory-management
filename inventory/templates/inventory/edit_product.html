@@ -1,138 +1,420 @@
 {% extends "base.html" %}
 
-{% block title %}Vividly Hooked Inventory Management System Editing Product{% endblock %}
+{% block title %}Vividly Hooked · {{ product.name }}{% endblock %}
 
-{% block content%} <!-- Page Header -->
-
+{% block content %}
 <div class="add-products-wrapper">
 
     <div class="dashboard-header mb-4">
         <a href="{% url 'home_page' %}" class="edit-back-link">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" />
+                <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Back to Inventory
         </a>
     </div>
 
-    <div class="form-card">
-        <div class="form-card__header">
-        <h1 class="dashboard-title mt-2">{{ form.instance.name }}</h1>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-card mb-0">
+<!-- ══════════════════════════════════════════
+     § 1 + 2  IMAGE · NAME · DESCRIPTION · PATTERNS
+══════════════════════════════════════════ -->
+<div class="edit-section">
+
+    <!-- Top row: image left, description right -->
+    <div class="edit-hero-row">
+
+        <!-- Left: image + name -->
+        <div class="edit-hero-left">
+   <div class="edit-image-frame" id="imageFrame">
+    {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+            class="edit-image" id="imagePreview">
+        <button type="button" class="edit-image__remove" id="imageRemoveBtn" title="Remove image">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <div class="edit-image__placeholder" id="imagePlaceholder" style="display:none;">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Click to add image</span>
         </div>
+    {% else %}
+        <img src="" alt="" class="edit-image" id="imagePreview" style="display:none;">
+        <button type="button" class="edit-image__remove" id="imageRemoveBtn" title="Remove image" style="display:none;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <div class="edit-image__placeholder" id="imagePlaceholder">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Click to add image</span>
+        </div>
+    {% endif %}
+    <input type="file" id="imageInput" accept="image/*" style="display:none;">
+</div>
+    <!-- title outside the frame now -->
+    <h2 class="edit-product-title">{{ product.name }}</h2>
+</div>
 
-        <form method="POST" class="form-card__body">
-            {% csrf_token %}
-            <div class="form-grid">
+<div class="edit-hero-right">
+    <p class="edit-section__label">Description</p>
+    <textarea class="form-input form-textarea"
+        id="productDescription"
+        placeholder="Yarn colour, hook size, time to make...">{{ product.description|default:'' }}</textarea>
+</div>
 
-                <!-- Name -->
-                <div class="form-group form-group--full">
-                    <label class="form-label" for="{{ form.name.id_for_label }}">Product Name</label>
-                    <input class="form-input {% if form.name.errors %}form-input--error{% endif %}" type="text"
-                        name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
-                        value="{{ form.name.value|default:'' }}">
-                    {% if form.name.errors %}<p class="form-error">{{ form.name.errors|striptags }}</p>{% endif %}
-                </div>
+    </div>
 
-                <!-- SKU -->
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.sku.id_for_label }}">SKU</label>
-                    <input class="form-input {% if form.sku.errors %}form-input--error{% endif %}" type="number"
-                        name="{{ form.sku.html_name }}" id="{{ form.sku.id_for_label }}"
-                        value="{{ form.sku.value|default:'' }}">
-                    {% if form.sku.errors %}<p class="form-error">{{ form.sku.errors|striptags }}</p>{% endif %}
-                </div>
 
-                <!-- Price -->
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.price.id_for_label }}">Price ($)</label>
-                    <input class="form-input {% if form.price.errors %}form-input--error{% endif %}" type="number"
-                        step="0.01" name="{{ form.price.html_name }}" id="{{ form.price.id_for_label }}"
-                        value="{{ form.price.value|default:'' }}">
-                    {% if form.price.errors %}<p class="form-error">{{ form.price.errors|striptags }}</p>{% endif %}
-                </div>
+<!-- Existing pattern files -->
+<div class="edit-pattern-files" id="patternList" style="margin-bottom: 2rem;">
+    {% for pattern in product.patterns.all %}
+    <div class="pattern-item" data-pattern-id="{{ pattern.id }}">
+        <div class="pattern-item__info">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            <a href="{{ pattern.file.url }}" download="{{ pattern.name }}"
+                class="pattern-item__name">{{ pattern.name }}</a>
+        </div>
+        <button type="button" class="pattern-item__delete-btn" data-pattern-id="{{ pattern.id }}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Remove
+        </button>
+    </div>
+    {% endfor %}
+</div>
 
-                <!-- Quantity -->
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Quantity</label>
-                    <input class="form-input {% if form.stock_quantity.errors %}form-input--error{% endif %}"
-                        type="number" name="{{ form.stock_quantity.html_name }}"
-                        id="{{ form.stock_quantity.id_for_label }}" value="{{ form.stock_quantity.value|default:'0' }}">
-                    {% if form.stock_quantity.errors %}<p class="form-error">{{ form.stock_quantity.errors|striptags }}
-                    </p>{% endif %}
-                </div>
-                    <!-- Discontinued -->
-                <div class="form-group">
-                    <label class="form-label">Discontinued</label>
-                    <div>
-                        <label class="filter-bar__toggle">
-                            <input 
-                                type="checkbox" name="{{ form.discontinued.html_name }}"
-                                id="{{ form.discontinued.id_for_label }}" class="filter-bar__toggle-input"
+
+            <!-- ══════════════════════════════════════════
+                 § 3  ADD PATTERN FILE
+            ══════════════════════════════════════════ -->
+    <p class="edit-section__label">Add Pattern File</p>
+
+    <div class="pattern-upload-row">
+        <div class="form-group" style="margin:0; flex:1;">
+            <label class="form-label">File name</label>
+            <input class="form-input" type="text" id="newPatternName"
+                placeholder="e.g. Main pattern, Size chart...">
+        </div>
+        <div class="form-group" style="margin:0; flex:1;">
+            <label class="form-label">File</label>
+            <input class="form-input" type="file" id="newPatternFile">
+        </div>
+    </div>
+
+    <button type="button" class="pattern-add-btn" id="addPatternBtn" style="margin-bottom: 2rem;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Add file
+    </button>
+
+
+            <!-- ══════════════════════════════════════════
+                 § 4  PRODUCT DETAILS
+            ══════════════════════════════════════════ -->
+                <p class="edit-section__label">Product Details</p>
+
+                <div class="form-grid">
+
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="{{ form.name.id_for_label }}">Product Name</label>
+                        <input class="form-input {% if form.name.errors %}form-input--error{% endif %}"
+                            type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
+                            value="{{ form.name.value|default:'' }}">
+                        {% if form.name.errors %}<p class="form-error">{{ form.name.errors|striptags }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.sku.id_for_label }}">SKU</label>
+                        <input class="form-input {% if form.sku.errors %}form-input--error{% endif %}"
+                            type="number" name="{{ form.sku.html_name }}" id="{{ form.sku.id_for_label }}"
+                            value="{{ form.sku.value|default_if_none:'' }}">
+                        {% if form.sku.errors %}<p class="form-error">{{ form.sku.errors|striptags }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.price.id_for_label }}">Price ($)</label>
+                        <input class="form-input {% if form.price.errors %}form-input--error{% endif %}"
+                            type="number" step="0.01" name="{{ form.price.html_name }}" id="{{ form.price.id_for_label }}"
+                            value="{{ form.price.value|default_if_none:'' }}">
+                        {% if form.price.errors %}<p class="form-error">{{ form.price.errors|striptags }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">Quantity</label>
+                        <input class="form-input {% if form.stock_quantity.errors %}form-input--error{% endif %}"
+                            type="number" name="{{ form.stock_quantity.html_name }}" id="{{ form.stock_quantity.id_for_label }}"
+                            value="{{ form.stock_quantity.value|default_if_none:'0' }}">
+                        {% if form.stock_quantity.errors %}<p class="form-error">{{ form.stock_quantity.errors|striptags }}</p>{% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Discontinued</label>
+                        <label class="filter-bar__toggle" style="margin:0;">
+                            <input type="checkbox" name="{{ form.discontinued.html_name }}"
+                                id="{{ form.discontinued.id_for_label }}"
                                 {% if form.discontinued.value %}checked{% endif %}>
                             <span class="filter-bar__toggle-track">
                                 <span class="filter-bar__toggle-thumb"></span>
                             </span>
                         </label>
                     </div>
-                </div>
-                <!-- Categories -->
-                <div class="form-group form-group--categories">
-                    <label class="form-label">Categories</label>
-                    <div class="category-checkbox-grid">
-                        {% for checkbox in form.categories %}
-                        <label class="category-checkbox">
-                            {{ checkbox.tag }}
-                            <span>{{ checkbox.choice_label }}</span>
-                        </label>
-                        {% endfor %}
+
+                    <div class="form-group form-group--categories">
+                        <label class="form-label">Categories</label>
+                        <div class="category-checkbox-grid">
+                            {% for checkbox in form.categories %}
+                            <label class="category-checkbox">
+                                {{ checkbox.tag }}
+                                <span>{{ checkbox.choice_label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.categories.errors %}<p class="form-error">{{ form.categories.errors|striptags }}</p>{% endif %}
                     </div>
-                    {% if form.categories.errors %}<p class="form-error">{{ form.categories.errors|striptags }}</p>
-                    {% endif %}
-                </div>
 
-                <!-- Subcategory -->
-                <div class="form-group form-group--categories">
-                    <label class="form-label" for="{{ form.subCategory.id_for_label }}">Subcategory</label>
-                    <select class="form-input form-select-input" name="{{ form.subCategory.html_name }}"
-                        id="{{ form.subCategory.id_for_label }}">
-                        {% for choice in form.subCategory %}
-                        {{ choice }}
-                        {% endfor %}
-                    </select>
-                    {% if form.subCategory.errors %}<p class="form-error">{{ form.subCategory.errors|striptags }}</p>
-                    {% endif %}
-                </div>
+                    <div class="form-group form-group--categories">
+                        <label class="form-label" for="{{ form.subCategory.id_for_label }}">Subcategory</label>
+                        <select class="form-input form-select-input" name="{{ form.subCategory.html_name }}"
+                            id="{{ form.subCategory.id_for_label }}">
+                            {% for choice in form.subCategory %}{{ choice }}{% endfor %}
+                        </select>
+                        {% if form.subCategory.errors %}<p class="form-error">{{ form.subCategory.errors|striptags }}</p>{% endif %}
+                    </div>
 
+                </div>
             </div>
 
-            <!-- Footer: Save + Delete -->
-            <div class="edit-form-footer">
-                <button type="submit" name="action" value="save" class="form-submit">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor"
-                            stroke-width="2" stroke-linejoin="round" />
-                        <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2"
-                            stroke-linejoin="round" />
-                    </svg>
-                    Save Changes
-                </button>
+        </div><!-- /form-card -->
 
-                <button type="submit" name="action" value="delete" class="form-delete"
-                    onclick="return confirm('Are you sure you want to delete {{ form.instance.name }}? This cannot be undone.')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    Delete Product
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+        <!-- ── Footer: Save + Delete ─────────────────────────────── -->
+        <div class="edit-form-footer">
+            <button type="submit" name="action" value="save" class="form-submit">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                        stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                Save Changes
+            </button>
+            <button type="submit" name="action" value="delete" class="form-delete"
+                onclick="return confirm('Are you sure you want to delete {{ form.instance.name }}? This cannot be undone.')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Delete Product
+            </button>
+        </div>
+
+    </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script>const imageFrame = document.getElementById('imageFrame');
+const imageInput = document.getElementById('imageInput');
+const imagePreview = document.getElementById('imagePreview');
+const imagePlaceholder = document.getElementById('imagePlaceholder');
+const imageRemoveBtn = document.getElementById('imageRemoveBtn');
+const productSku = {{ product.sku }};
 
+function getCSRFToken() {
+    return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+}
+
+// Click placeholder OR image area (when no image) to add
+imagePlaceholder.addEventListener('click', () => imageInput.click());
+
+// Upload on file select
+imageInput.addEventListener('change', async () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'upload');
+    formData.append('image', file);
+    
+    try {
+        const res = await fetch(`/product/${productSku}/update-image/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            imagePreview.src = data.image_url;
+            imagePreview.style.display = 'block';
+            imagePlaceholder.style.display = 'none';
+            imageRemoveBtn.style.display = 'flex';
+        }
+    } catch (err) {
+        console.error('Image upload failed:', err);
+    }
+});
+
+// Remove with confirmation
+imageRemoveBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('Remove this image?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'remove');
+    
+    try {
+        const res = await fetch(`/product/${productSku}/update-image/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            imagePreview.src = '';
+            imagePreview.style.display = 'none';
+            imageRemoveBtn.style.display = 'none';
+            imagePlaceholder.style.display = 'flex';
+            imageInput.value = ''; // reset so same file can be picked again
+        }
+    } catch (err) {
+        console.error('Image remove failed:', err);
+    }
+});
+
+
+
+const descTextarea = document.getElementById('productDescription');
+let lastSavedDescription = descTextarea.value;
+
+descTextarea.addEventListener('blur', async () => {
+    // skip if nothing changed
+    if (descTextarea.value === lastSavedDescription) return;
+    
+    try {
+        const res = await fetch(`/product/${productSku}/update-description/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ description: descTextarea.value })
+        });
+        const data = await res.json();
+        if (data.success) {
+            lastSavedDescription = descTextarea.value;
+        }
+    } catch (err) {
+        console.error('Description save failed:', err);
+    }
+});
+
+const patternList = document.getElementById('patternList');
+const newPatternName = document.getElementById('newPatternName');
+const newPatternFile = document.getElementById('newPatternFile');
+const addPatternBtn = document.getElementById('addPatternBtn');
+
+// Add new pattern file
+addPatternBtn.addEventListener('click', async () => {
+    const name = newPatternName.value.trim();
+    const file = newPatternFile.files[0];
+
+    if (!name) {
+        alert('Please enter a file name');
+        return;
+    }
+    if (!file) {
+        alert('Please choose a file');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`/product/${productSku}/add-pattern/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            // create the new pattern element
+            const newItem = document.createElement('div');
+            newItem.className = 'pattern-item';
+            newItem.dataset.patternId = data.pattern.id;
+            newItem.innerHTML = `
+                <div class="pattern-item__info">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <a href="${data.pattern.url}" download="${data.pattern.name}"
+                        class="pattern-item__name">${data.pattern.name}</a>
+                </div>
+                <button type="button" class="pattern-item__delete-btn" data-pattern-id="${data.pattern.id}">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Remove
+                </button>
+            `;
+            patternList.appendChild(newItem);
+
+            // clear inputs
+            newPatternName.value = '';
+            newPatternFile.value = '';
+        } else {
+            alert(data.error || 'Failed to add pattern');
+        }
+    } catch (err) {
+        console.error('Add pattern failed:', err);
+        alert('Failed to add pattern');
+    }
+});
+
+// Delete pattern — using event delegation so dynamically added items work too
+patternList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.pattern-item__delete-btn');
+    if (!btn) return;
+
+    if (!confirm('Remove this pattern file?')) return;
+
+    const patternId = btn.dataset.patternId;
+    const item = btn.closest('.pattern-item');
+
+    try {
+        const res = await fetch(`/product/${productSku}/delete-pattern/${patternId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() }
+        });
+        const data = await res.json();
+        if (data.success) {
+            item.remove();
+        } else {
+            alert('Failed to remove pattern');
+        }
+    } catch (err) {
+        console.error('Delete pattern failed:', err);
+        alert('Failed to remove pattern');
+    }
+});
+</script>
 {% endblock %}

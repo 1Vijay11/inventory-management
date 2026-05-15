@@ -5,13 +5,18 @@ from django.contrib.auth.decorators import login_required  # restrict views to a
 from django.contrib import messages  # display success/error messages to users
 # Database queries & ORM tools
 from django.db.models import Q, Max, Sum, F  # advanced queries, aggregations, and field operations
-from .models import Product, Category, SubCategory  # database tables for your app
+from .models import Product, Category, SubCategory, PatternFile  # database tables for your app
+from django.forms import modelformset_factory
+from django.shortcuts import render, redirect, get_object_or_404
+
 # Forms
 from .forms import (
     ProductForm,
     CategoryForm,
     SubCategoryForm,
     CustomUserCreationForm,
+    PatternFileForm,
+    ProductEditForm
 ) 
 # CSV handling
 import csv  
@@ -388,30 +393,172 @@ def export_products_csv(request):
     return response
 @login_required
 def product_edit(request, sku):
-    product = Product.objects.get(sku=sku, user=request.user)
+    # product = get_object_or_404(Product, sku=sku, user=request.user)
+    
+    # PatternFormSet = modelformset_factory(
+    #     PatternFile,
+    #     form=PatternFileForm,
+    #     extra=1,  # always show one empty form for new uploads
+    #     can_delete=True
+    # )
+
+    # if request.method == "POST":
+    #     action = request.POST.get("action")
+
+    #     if action == "delete":
+    #         product.delete()
+    #         return redirect("home_page")
+
+    #     if action == "save":
+    #         form = ProductEditForm(request.POST, request.FILES, instance=product, user=request.user)
+    #         pattern_formset = PatternFormSet(
+    #             request.POST,
+    #             request.FILES,
+    #             queryset=PatternFile.objects.filter(product=product)
+    #         )
+
+    #         if form.is_valid() and pattern_formset.is_valid():
+    #             form.save()
+
+    #             # handle pattern files
+    #             patterns = pattern_formset.save(commit=False)
+    #             for pattern in patterns:
+    #                 pattern.product = product
+    #                 pattern.save()
+
+    #             # handle deletions
+    #             for pattern in pattern_formset.deleted_objects:
+    #                 pattern.delete()
+
+    #             pattern_formset.save_m2m()
+    #             messages.success(request, "Product updated successfully")
+    #             return redirect('home_page')
+    # else:
+    #     form = ProductEditForm(instance=product, user=request.user)
+    #     pattern_formset = PatternFormSet(
+    #         queryset=PatternFile.objects.filter(product=product)
+    #     )
+
+    # return render(request, 'inventory/edit_product.html', {
+    #     'form': form,
+    #     'product': product,
+    #     'pattern_formset': pattern_formset,
+    # })
+    product = get_object_or_404(Product, sku=sku, user=request.user)
 
     if request.method == "POST":
-        action = request.POST.get("action") # checking the name 
+        action = request.POST.get("action")
 
-        # EDITING LOGIC
-        form = ProductForm(request.POST, instance=product, user=request.user) # instance=product is telling djang ot update that instance of product not create a new one
-        if action == "save":
-            if form.is_valid():
-                form.save()
-                return redirect('home_page')
-            
-        # DELETING LOGIC
         if action == "delete":
             product.delete()
             return redirect("home_page")
 
+        if action == "save":
+            form = ProductEditForm(request.POST, instance=product, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Product updated successfully")
+                return redirect('home_page')
     else:
-        form = ProductForm(instance=product, user=request.user) #instance=product just auto fills the form with the past instance of the product
+        form = ProductEditForm(instance=product, user=request.user)
 
     return render(request, 'inventory/edit_product.html', {
         'form': form,
-        'product': product
+        'product': product,
     })
+
+#special Prodcut edit request may change later 
+@login_required
+def update_product_image(request, sku):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    product = get_object_or_404(Product, sku=sku, user=request.user)
+    action = request.POST.get("action")
+    
+    if action == "remove":
+        if product.image:
+            product.image.delete(save=False)  # delete file from disk
+            product.image = None
+            product.save()
+        return JsonResponse({"success": True, "image_url": None})
+    
+    if action == "upload":
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return JsonResponse({"error": "No image provided"}, status=400)
+        
+        # delete old image if exists
+        if product.image:
+            product.image.delete(save=False)
+        
+        product.image = image_file
+        product.save()
+        return JsonResponse({"success": True, "image_url": product.image.url})
+    
+    return JsonResponse({"error": "Invalid action"}, status=400)
+@login_required
+def update_product_description(request, sku):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    product = get_object_or_404(Product, sku=sku, user=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        product.description = data.get("description", "")
+        product.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+@login_required
+def add_pattern_file(request, sku):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    product = get_object_or_404(Product, sku=sku, user=request.user)
+    
+    name = request.POST.get("name", "").strip()
+    file = request.FILES.get("file")
+    
+    if not name:
+        return JsonResponse({"error": "File name is required"}, status=400)
+    if not file:
+        return JsonResponse({"error": "File is required"}, status=400)
+    
+    pattern = PatternFile.objects.create(
+        product=product,
+        name=name,
+        file=file
+    )
+    
+    return JsonResponse({
+        "success": True,
+        "pattern": {
+            "id": pattern.id,
+            "name": pattern.name,
+            "url": pattern.file.url,
+        }
+    })
+
+
+@login_required
+def delete_pattern_file(request, sku, pattern_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    # ensure the pattern belongs to a product owned by this user
+    pattern = get_object_or_404(
+        PatternFile, 
+        id=pattern_id, 
+        product__sku=sku, 
+        product__user=request.user
+    )
+    
+    pattern.file.delete(save=False)  # delete the file from disk
+    pattern.delete()
+    
+    return JsonResponse({"success": True})
 # Login not required
 def signup(request):
     if request.method == "POST":

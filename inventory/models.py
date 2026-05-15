@@ -68,6 +68,12 @@ class SubCategory(models.Model):
     def __str__(self):
         return self.name
     
+def product_image_path(instance, filename):
+    return f'products/{instance.user.id}/{instance.sku}/image/{filename}'
+
+def product_pattern_path(instance, filename):
+    return f'products/{instance.product.user.id}/{instance.product.sku}/patterns/{filename}'
+
 class Product(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
 
@@ -76,6 +82,10 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     stock_quantity = models.IntegerField(default=0)
     discontinued = models.BooleanField(default=False) # items just being added are normally not discontinued
+
+    #for the editpage info
+    image = models.ImageField(upload_to=product_image_path, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     # creating a many to many relationship, blank = true => alows products to have no category
     categories = models.ManyToManyField(Category, blank=True, related_name="products")
 
@@ -98,4 +108,11 @@ class Product(models.Model):
         ]
         unique_together = ('user', 'sku')
 
+class PatternFile(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='patterns')
+    file = models.FileField(upload_to=product_pattern_path)
+    name = models.CharField(max_length=255)  # display name for the download button
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.name
