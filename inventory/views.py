@@ -205,16 +205,29 @@ def create(request):
                 product.save()
                 product_form.save_m2m()
 
-                # Handle pattern files
+                # Explicitly save image if provided
+                if 'image' in request.FILES:
+                    product.image = request.FILES['image']
+                    product.save()
+
+                # Handle pattern files and links
                 pattern_names = request.POST.getlist('pattern_name')
                 pattern_files = request.FILES.getlist('pattern_file')
-                for name, file in zip(pattern_names, pattern_files):
-                    if name.strip() and file:
-                        PatternFile.objects.create(
-                            product=product,
-                            name=name.strip(),
-                            file=file
-                        )
+                pattern_urls = request.POST.getlist('pattern_url')
+                pattern_types = request.POST.getlist('pattern_type')
+
+                for i, ptype in enumerate(pattern_types):
+                    name = pattern_names[i].strip() if i < len(pattern_names) else ''
+                    if not name:
+                        continue
+                    if ptype == 'link':
+                        url = pattern_urls[i].strip() if i < len(pattern_urls) else ''
+                        if url:
+                            PatternFile.objects.create(product=product, name=name, url=url)
+                    else:
+                        file = pattern_files.pop(0) if pattern_files else None
+                        if file:
+                            PatternFile.objects.create(product=product, name=name, file=file)
 
                 messages.success(request, "Successfully Added New Product")
                 return redirect('home_page')
@@ -440,22 +453,42 @@ def product_edit(request, sku):
             product.description = request.POST.get("description", "")
             product.save()
             return JsonResponse({"success": True})
-
-        # ─── Async: add pattern file ───
+# ─── Async: add pattern file or link ───
         elif action == "add-pattern":
             name = request.POST.get("pattern_name", "").strip()
-            pattern_file = request.FILES.get("pattern_file")
-            if not name or not pattern_file:
-                return JsonResponse({"error": "Name and file required"}, status=400)
-            pattern = PatternFile.objects.create(product=product, name=name, file=pattern_file)
-            return JsonResponse({
-                "success": True,
-                "pattern": {
-                    "id": pattern.id,
-                    "name": pattern.name,
-                    "url": pattern.file.url,
-                },
-            })
+            pattern_type = request.POST.get("pattern_type", "file")
+            
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            
+            if pattern_type == "link":
+                url = request.POST.get("pattern_url", "").strip()
+                if not url:
+                    return JsonResponse({"error": "URL is required"}, status=400)
+                pattern = PatternFile.objects.create(product=product, name=name, url=url)
+                return JsonResponse({
+                    "success": True,
+                    "pattern": {
+                        "id": pattern.id,
+                        "name": pattern.name,
+                        "url": pattern.url,
+                        "is_link": True,
+                    },
+                })
+            else:
+                pattern_file = request.FILES.get("pattern_file")
+                if not pattern_file:
+                    return JsonResponse({"error": "File is required"}, status=400)
+                pattern = PatternFile.objects.create(product=product, name=name, file=pattern_file)
+                return JsonResponse({
+                    "success": True,
+                    "pattern": {
+                        "id": pattern.id,
+                        "name": pattern.name,
+                        "url": pattern.file.url,
+                        "is_link": False,
+                    },
+                })
 
         # ─── Async: delete pattern file ───
         elif action == "delete-pattern":

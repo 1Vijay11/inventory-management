@@ -88,11 +88,31 @@
                     <div class="edit-pattern-files" id="addPatternDisplay"></div>
                 </div>
 
-                <!-- § Add Pattern File -->
+                    <!--  Add Pattern File / Link -->
                 <div class="edit-section edit-section--divider">
                     <p class="edit-section__label">Pattern Files (optional)</p>
 
-                    <div class="pattern-upload-row">
+                    <!-- Toggle between file and link -->
+                    <div class="pattern-type-toggle" style="margin-bottom: 1rem;">
+                        <button type="button" class="pattern-type-btn active" id="addToggleFile">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            File
+                        </button>
+                        <button type="button" class="pattern-type-btn" id="addToggleLink">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Link
+                        </button>
+                    </div>
+
+                    <!-- File upload row -->
+                    <div class="pattern-upload-row" id="addPatternFileRow">
                         <div class="form-group" style="margin:0; flex:1;">
                             <label class="form-label">File name</label>
                             <input class="form-input" type="text" id="addPatternNameInput"
@@ -104,12 +124,30 @@
                         </div>
                     </div>
 
+                    <!-- Link input row -->
+                    <div class="pattern-upload-row" id="addPatternLinkRow" style="display:none;">
+                        <div class="form-group" style="margin:0; flex:1;">
+                            <label class="form-label">Link name</label>
+                            <input class="form-input" type="text" id="addPatternLinkName"
+                                placeholder="e.g. Ravelry pattern, YouTube tutorial...">
+                        </div>
+                        <div class="form-group" style="margin:0; flex:1;">
+                            <label class="form-label">URL</label>
+                            <input class="form-input" type="url" id="addPatternLinkUrl"
+                                placeholder="https://...">
+                        </div>
+                    </div>
+
                     <button type="button" class="pattern-add-btn" id="addPatternToListBtn">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
-                        Add file
+                        <span id="addPatternBtnText">Add file</span>
                     </button>
+
+                    <!-- Hidden inputs get injected here by JS -->
+                    <div id="addPatternHiddenInputs"></div>
+                </div>
 
                     <!-- Hidden inputs get injected here by JS -->
                     <div id="addPatternHiddenInputs"></div>
@@ -411,67 +449,113 @@ if (addImageInput) {
         reader.readAsDataURL(file);
     });
 }
-
-// Pattern file queuing
-const addPatternNameInput = document.getElementById('addPatternNameInput');
-const addPatternFileInput = document.getElementById('addPatternFileInput');
+// Pattern file/link queuing
 const addPatternToListBtn = document.getElementById('addPatternToListBtn');
 const addPatternDisplay = document.getElementById('addPatternDisplay');
 const addPatternHidden = document.getElementById('addPatternHiddenInputs');
+const addPatternBtnText = document.getElementById('addPatternBtnText');
+
+// Toggle
+const addToggleFile = document.getElementById('addToggleFile');
+const addToggleLink = document.getElementById('addToggleLink');
+const addFileRow = document.getElementById('addPatternFileRow');
+const addLinkRow = document.getElementById('addPatternLinkRow');
+let addPatternType = 'file';
 let patternCounter = 0;
+
+addToggleFile.addEventListener('click', () => {
+    addPatternType = 'file';
+    addToggleFile.classList.add('active');
+    addToggleLink.classList.remove('active');
+    addFileRow.style.display = 'flex';
+    addLinkRow.style.display = 'none';
+    addPatternBtnText.textContent = 'Add file';
+});
+
+addToggleLink.addEventListener('click', () => {
+    addPatternType = 'link';
+    addToggleLink.classList.add('active');
+    addToggleFile.classList.remove('active');
+    addFileRow.style.display = 'none';
+    addLinkRow.style.display = 'flex';
+    addPatternBtnText.textContent = 'Add link';
+});
 
 if (addPatternToListBtn) {
     addPatternToListBtn.addEventListener('click', () => {
-        const name = addPatternNameInput.value.trim();
-        const file = addPatternFileInput.files[0];
-        if (!name) return alert('Please enter a file name');
-        if (!file) return alert('Please choose a file');
-
         const id = patternCounter++;
 
-        // Create a real file input with the actual file, hidden
-        const hiddenFile = addPatternFileInput.cloneNode(true);
-        hiddenFile.id = '';
-        hiddenFile.name = 'pattern_file';
-        hiddenFile.style.display = 'none';
-        hiddenFile.classList.remove('form-input');
+        if (addPatternType === 'file') {
+            const name = document.getElementById('addPatternNameInput').value.trim();
+            const fileInput = document.getElementById('addPatternFileInput');
+            const file = fileInput.files[0];
+            if (!name) return alert('Please enter a file name');
+            if (!file) return alert('Please choose a file');
 
-        const hiddenName = document.createElement('input');
-        hiddenName.type = 'hidden';
-        hiddenName.name = 'pattern_name';
-        hiddenName.value = name;
+            // Clone the file input (can't set file values programmatically)
+            const hiddenFile = fileInput.cloneNode(true);
+            hiddenFile.id = '';
+            hiddenFile.name = 'pattern_file';
+            hiddenFile.style.display = 'none';
+            hiddenFile.classList.remove('form-input');
 
-        const wrapper = document.createElement('div');
-        wrapper.id = `pattern-hidden-${id}`;
-        wrapper.appendChild(hiddenName);
-        wrapper.appendChild(hiddenFile);
-        addPatternHidden.appendChild(wrapper);
+            const hiddenName = document.createElement('input');
+            hiddenName.type = 'hidden';
+            hiddenName.name = 'pattern_name';
+            hiddenName.value = name;
 
-        // Show pill in display area
-        const pill = document.createElement('div');
-        pill.className = 'pattern-item';
-        pill.dataset.patternId = id;
-        pill.innerHTML = `
-            <div class="pattern-item__info">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                    <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-                <span class="pattern-item__name">${name}</span>
-            </div>
-            <button type="button" class="pattern-item__delete-btn" data-remove-id="${id}">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                Remove
-            </button>
-        `;
-        addPatternDisplay.appendChild(pill);
+            const hiddenType = document.createElement('input');
+            hiddenType.type = 'hidden';
+            hiddenType.name = 'pattern_type';
+            hiddenType.value = 'file';
 
-        // Clear inputs for next file
-        addPatternNameInput.value = '';
-        addPatternFileInput.value = '';
+            const wrapper = document.createElement('div');
+            wrapper.id = `pattern-hidden-${id}`;
+            wrapper.appendChild(hiddenName);
+            wrapper.appendChild(hiddenType);
+            wrapper.appendChild(hiddenFile);
+            addPatternHidden.appendChild(wrapper);
+
+            // Show pill
+            addPatternDisplay.insertAdjacentHTML('beforeend', renderAddPill(id, name, false));
+
+            document.getElementById('addPatternNameInput').value = '';
+            fileInput.value = '';
+
+        } else {
+            const name = document.getElementById('addPatternLinkName').value.trim();
+            const url = document.getElementById('addPatternLinkUrl').value.trim();
+            if (!name) return alert('Please enter a link name');
+            if (!url) return alert('Please enter a URL');
+
+            const hiddenName = document.createElement('input');
+            hiddenName.type = 'hidden';
+            hiddenName.name = 'pattern_name';
+            hiddenName.value = name;
+
+            const hiddenType = document.createElement('input');
+            hiddenType.type = 'hidden';
+            hiddenType.name = 'pattern_type';
+            hiddenType.value = 'link';
+
+            const hiddenUrl = document.createElement('input');
+            hiddenUrl.type = 'hidden';
+            hiddenUrl.name = 'pattern_url';
+            hiddenUrl.value = url;
+
+            const wrapper = document.createElement('div');
+            wrapper.id = `pattern-hidden-${id}`;
+            wrapper.appendChild(hiddenName);
+            wrapper.appendChild(hiddenType);
+            wrapper.appendChild(hiddenUrl);
+            addPatternHidden.appendChild(wrapper);
+
+            // Show pill
+            addPatternDisplay.insertAdjacentHTML('beforeend', renderAddPill(id, name, true));
+
+            document.getElementById('addPatternLinkName').value = '';
+            document.getElementById('addPatternLinkUrl').value = '';
+        }
     });
 
     // Remove queued pattern
@@ -482,6 +566,34 @@ if (addPatternToListBtn) {
         document.getElementById(`pattern-hidden-${removeId}`)?.remove();
         btn.closest('.pattern-item').remove();
     });
+}
+
+function renderAddPill(id, name, isLink) {
+    const icon = isLink
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           </svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+           </svg>`;
+
+    return `
+        <div class="pattern-item" data-pattern-id="${id}">
+            <div class="pattern-item__info">
+                ${icon}
+                <span class="pattern-item__name">${name}</span>
+            </div>
+            <button type="button" class="pattern-item__delete-btn" data-remove-id="${id}">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Remove
+            </button>
+        </div>
+    `;
 }
 </script>
 {% endblock %}

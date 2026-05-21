@@ -110,9 +110,14 @@ class Product(models.Model):
 
 class PatternFile(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='patterns')
-    file = models.FileField(upload_to=product_pattern_path)
-    name = models.CharField(max_length=255)  # display name for the download button
+    file = models.FileField(upload_to=product_pattern_path, null=True, blank=True)
+    url = models.URLField(max_length=500, null=True, blank=True)
+    name = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_link(self):
+        return bool(self.url)
 
     def __str__(self):
         return self.name

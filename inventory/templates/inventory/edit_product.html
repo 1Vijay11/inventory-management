@@ -82,13 +82,22 @@
     {% for pattern in product.patterns.all %}
     <div class="pattern-item" data-pattern-id="{{ pattern.id }}">
         <div class="pattern-item__info">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-            <a href="{{ pattern.file.url }}" download="{{ pattern.name }}"
-                class="pattern-item__name">{{ pattern.name }}</a>
+            {% if pattern.is_link %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <a href="{{ pattern.url }}" target="_blank" rel="noopener"
+                    class="pattern-item__name">{{ pattern.name }}</a>
+            {% else %}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <a href="{{ pattern.file.url }}" download="{{ pattern.name }}"
+                    class="pattern-item__name">{{ pattern.name }}</a>
+            {% endif %}
         </div>
         <button type="button" class="pattern-item__delete-btn" data-pattern-id="{{ pattern.id }}">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
@@ -100,31 +109,63 @@
     {% endfor %}
 </div>
 
+<!-- ══════════════════════════════════════════
+     § 3  ADD PATTERN FILE / LINK
+══════════════════════════════════════════ -->
+<p class="edit-section__label">Add Pattern</p>
 
-            <!-- ══════════════════════════════════════════
-                 § 3  ADD PATTERN FILE
-            ══════════════════════════════════════════ -->
-    <p class="edit-section__label">Add Pattern File</p>
-
-    <div class="pattern-upload-row">
-        <div class="form-group" style="margin:0; flex:1;">
-            <label class="form-label">File name</label>
-            <input class="form-input" type="text" id="newPatternName"
-                placeholder="e.g. Main pattern, Size chart...">
-        </div>
-        <div class="form-group" style="margin:0; flex:1;">
-            <label class="form-label">File</label>
-            <input class="form-input" type="file" id="newPatternFile">
-        </div>
-    </div>
-
-    <button type="button" class="pattern-add-btn" id="addPatternBtn" style="margin-bottom: 2rem;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<!-- Toggle between file and link -->
+<div class="pattern-type-toggle" style="margin-bottom: 1rem;">
+    <button type="button" class="pattern-type-btn active" data-type="file" id="toggleFile">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
         </svg>
-        Add file
+        File
     </button>
+    <button type="button" class="pattern-type-btn" data-type="link" id="toggleLink">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Link
+    </button>
+</div>
 
+<!-- File upload row -->
+<div class="pattern-upload-row" id="patternFileRow">
+    <div class="form-group" style="margin:0; flex:1;">
+        <label class="form-label">File name</label>
+        <input class="form-input" type="text" id="newPatternName"
+            placeholder="e.g. Main pattern pdf...">
+    </div>
+    <div class="form-group" style="margin:0; flex:1;">
+        <label class="form-label">File</label>
+        <input class="form-input" type="file" id="newPatternFile">
+    </div>
+</div>
+
+<!-- Link input row -->
+<div class="pattern-upload-row" id="patternLinkRow" style="display:none;">
+    <div class="form-group" style="margin:0; flex:1;">
+        <label class="form-label">Link name</label>
+        <input class="form-input" type="text" id="newPatternLinkName"
+            placeholder="e.g. Main pattern Website, YouTube tutorial...">
+    </div>
+    <div class="form-group" style="margin:0; flex:1;">
+        <label class="form-label">URL</label>
+        <input class="form-input" type="url" id="newPatternUrl"
+            placeholder="https://...">
+    </div>
+</div>
+
+<button type="button" class="pattern-add-btn" id="addPatternBtn" style="margin-bottom: 2rem;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span id="addPatternBtnText">Add file</span>
+</button>
 
             <!-- ══════════════════════════════════════════
                  § 4  PRODUCT DETAILS
@@ -293,42 +334,103 @@ descTextarea.addEventListener('blur', async () => {
 
 // ─── Patterns ───
 const patternList = document.getElementById('patternList');
-const newPatternName = document.getElementById('newPatternName');
-const newPatternFile = document.getElementById('newPatternFile');
+const addPatternBtn = document.getElementById('addPatternBtn');
+const addPatternBtnText = document.getElementById('addPatternBtnText');
 
-document.getElementById('addPatternBtn').addEventListener('click', async () => {
-    const name = newPatternName.value.trim();
-    const file = newPatternFile.files[0];
-    if (!name) return alert('Please enter a file name');
-    if (!file) return alert('Please choose a file');
+// Toggle between file / link
+const toggleFile = document.getElementById('toggleFile');
+const toggleLink = document.getElementById('toggleLink');
+const fileRow = document.getElementById('patternFileRow');
+const linkRow = document.getElementById('patternLinkRow');
+let currentPatternType = 'file';
 
-    const data = await postAction('add-pattern', { pattern_name: name, pattern_file: file });
-    if (!data.success) return alert(data.error || 'Failed to add pattern');
-
-    patternList.insertAdjacentHTML('beforeend', renderPatternItem(data.pattern));
-    newPatternName.value = '';
-    newPatternFile.value = '';
+toggleFile.addEventListener('click', () => {
+    currentPatternType = 'file';
+    toggleFile.classList.add('active');
+    toggleLink.classList.remove('active');
+    fileRow.style.display = 'flex';
+    linkRow.style.display = 'none';
+    addPatternBtnText.textContent = 'Add file';
 });
 
+toggleLink.addEventListener('click', () => {
+    currentPatternType = 'link';
+    toggleLink.classList.add('active');
+    toggleFile.classList.remove('active');
+    fileRow.style.display = 'none';
+    linkRow.style.display = 'flex';
+    addPatternBtnText.textContent = 'Add link';
+});
+
+// Add pattern (file or link)
+addPatternBtn.addEventListener('click', async () => {
+    if (currentPatternType === 'file') {
+        const name = document.getElementById('newPatternName').value.trim();
+        const file = document.getElementById('newPatternFile').files[0];
+        if (!name) return alert('Please enter a file name');
+        if (!file) return alert('Please choose a file');
+
+        const data = await postAction('add-pattern', {
+            pattern_type: 'file',
+            pattern_name: name,
+            pattern_file: file
+        });
+        if (!data.success) return alert(data.error || 'Failed to add pattern');
+
+        patternList.insertAdjacentHTML('beforeend', renderPatternItem(data.pattern));
+        document.getElementById('newPatternName').value = '';
+        document.getElementById('newPatternFile').value = '';
+
+    } else {
+        const name = document.getElementById('newPatternLinkName').value.trim();
+        const url = document.getElementById('newPatternUrl').value.trim();
+        if (!name) return alert('Please enter a link name');
+        if (!url) return alert('Please enter a URL');
+
+        const data = await postAction('add-pattern', {
+            pattern_type: 'link',
+            pattern_name: name,
+            pattern_url: url
+        });
+        if (!data.success) return alert(data.error || 'Failed to add link');
+
+        patternList.insertAdjacentHTML('beforeend', renderPatternItem(data.pattern));
+        document.getElementById('newPatternLinkName').value = '';
+        document.getElementById('newPatternUrl').value = '';
+    }
+});
+
+// Delete pattern (works for both files and links)
 patternList.addEventListener('click', async (e) => {
     const btn = e.target.closest('.pattern-item__delete-btn');
     if (!btn) return;
-    if (!confirm('Remove this pattern file?')) return;
+    if (!confirm('Remove this pattern?')) return;
 
     const data = await postAction('delete-pattern', { pattern_id: btn.dataset.patternId });
     if (data.success) btn.closest('.pattern-item').remove();
 });
 
 function renderPatternItem(p) {
+    const icon = p.is_link
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+           </svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+           </svg>`;
+
+    const linkAttrs = p.is_link
+        ? `href="${p.url}" target="_blank" rel="noopener"`
+        : `href="${p.url}" download="${p.name}"`;
+
     return `
         <div class="pattern-item" data-pattern-id="${p.id}">
             <div class="pattern-item__info">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                    <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-                <a href="${p.url}" download="${p.name}" class="pattern-item__name">${p.name}</a>
+                ${icon}
+                <a ${linkAttrs} class="pattern-item__name">${p.name}</a>
             </div>
             <button type="button" class="pattern-item__delete-btn" data-pattern-id="${p.id}">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none">

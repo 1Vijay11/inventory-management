@@ -117,7 +117,14 @@ nav.inventory-navbar .nav-logo-text {
     font-weight: 700;
     color: var(--text-dark);
 }
-
+.nav-logo-img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-warm);
+    box-shadow: 0 1px 4px rgba(180, 120, 100, 0.15);
+}
 nav.inventory-navbar .nav-btn {
     display: inline-flex;
     align-items: center;
@@ -1062,6 +1069,41 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 }
 .form-textarea--add {
     min-height: 120px;
+}
+.pattern-type-toggle {
+    display: inline-flex;
+    gap: 0.3rem;
+    background-color: var(--surface-warm);
+    border: 1px solid var(--border-mid);
+    border-radius: 9px;
+    padding: 0.25rem;
+}
+
+.pattern-type-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.35rem 0.85rem;
+    border: none;
+    border-radius: 7px;
+    background-color: transparent;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-subtle);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pattern-type-btn:hover {
+    color: var(--text-dark);
+    background-color: var(--surface-selected);
+}
+
+.pattern-type-btn.active {
+    background-color: var(--surface-white);
+    color: var(--accent-dark);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 /* ── Submit Button ────────────────────────────────────────────────────────── */
 .form-submit {
