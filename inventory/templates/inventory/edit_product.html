@@ -229,192 +229,115 @@
 {% endblock %}
 
 {% block scripts %}
-<script>const imageFrame = document.getElementById('imageFrame');
-const imageInput = document.getElementById('imageInput');
-const imagePreview = document.getElementById('imagePreview');
-const imagePlaceholder = document.getElementById('imagePlaceholder');
-const imageRemoveBtn = document.getElementById('imageRemoveBtn');
-const productSku = {{ product.sku }};
-
+<script>
+// ─── Helpers ───
 function getCSRFToken() {
     return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
 }
 
-// Click placeholder OR image area (when no image) to add
+async function postAction(action, extraData = {}) {
+    const formData = new FormData();
+    formData.append('action', action);
+    for (const [key, value] of Object.entries(extraData)) {
+        formData.append(key, value);
+    }
+    const res = await fetch(window.location.pathname, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        body: formData,
+    });
+    return res.json();
+}
+
+// ─── Image ───
+const imageInput = document.getElementById('imageInput');
+const imagePreview = document.getElementById('imagePreview');
+const imagePlaceholder = document.getElementById('imagePlaceholder');
+const imageRemoveBtn = document.getElementById('imageRemoveBtn');
+
 imagePlaceholder.addEventListener('click', () => imageInput.click());
 
-// Upload on file select
 imageInput.addEventListener('change', async () => {
     const file = imageInput.files[0];
     if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('action', 'upload');
-    formData.append('image', file);
-    
-    try {
-        const res = await fetch(`/product/${productSku}/update-image/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCSRFToken() },
-            body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-            imagePreview.src = data.image_url;
-            imagePreview.style.display = 'block';
-            imagePlaceholder.style.display = 'none';
-            imageRemoveBtn.style.display = 'flex';
-        }
-    } catch (err) {
-        console.error('Image upload failed:', err);
+    const data = await postAction('upload-image', { image: file });
+    if (data.success) {
+        imagePreview.src = data.image_url;
+        imagePreview.style.display = 'block';
+        imagePlaceholder.style.display = 'none';
+        imageRemoveBtn.style.display = 'flex';
     }
 });
 
-// Remove with confirmation
 imageRemoveBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!confirm('Remove this image?')) return;
-    
-    const formData = new FormData();
-    formData.append('action', 'remove');
-    
-    try {
-        const res = await fetch(`/product/${productSku}/update-image/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCSRFToken() },
-            body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-            imagePreview.src = '';
-            imagePreview.style.display = 'none';
-            imageRemoveBtn.style.display = 'none';
-            imagePlaceholder.style.display = 'flex';
-            imageInput.value = ''; // reset so same file can be picked again
-        }
-    } catch (err) {
-        console.error('Image remove failed:', err);
+    const data = await postAction('remove-image');
+    if (data.success) {
+        imagePreview.style.display = 'none';
+        imageRemoveBtn.style.display = 'none';
+        imagePlaceholder.style.display = 'flex';
+        imageInput.value = '';
     }
 });
 
-
-
+// ─── Description (saves on blur) ───
 const descTextarea = document.getElementById('productDescription');
 let lastSavedDescription = descTextarea.value;
 
 descTextarea.addEventListener('blur', async () => {
-    // skip if nothing changed
     if (descTextarea.value === lastSavedDescription) return;
-    
-    try {
-        const res = await fetch(`/product/${productSku}/update-description/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({ description: descTextarea.value })
-        });
-        const data = await res.json();
-        if (data.success) {
-            lastSavedDescription = descTextarea.value;
-        }
-    } catch (err) {
-        console.error('Description save failed:', err);
-    }
+    const data = await postAction('save-description', { description: descTextarea.value });
+    if (data.success) lastSavedDescription = descTextarea.value;
 });
 
+// ─── Patterns ───
 const patternList = document.getElementById('patternList');
 const newPatternName = document.getElementById('newPatternName');
 const newPatternFile = document.getElementById('newPatternFile');
-const addPatternBtn = document.getElementById('addPatternBtn');
 
-// Add new pattern file
-addPatternBtn.addEventListener('click', async () => {
+document.getElementById('addPatternBtn').addEventListener('click', async () => {
     const name = newPatternName.value.trim();
     const file = newPatternFile.files[0];
+    if (!name) return alert('Please enter a file name');
+    if (!file) return alert('Please choose a file');
 
-    if (!name) {
-        alert('Please enter a file name');
-        return;
-    }
-    if (!file) {
-        alert('Please choose a file');
-        return;
-    }
+    const data = await postAction('add-pattern', { pattern_name: name, pattern_file: file });
+    if (!data.success) return alert(data.error || 'Failed to add pattern');
 
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('file', file);
-
-    try {
-        const res = await fetch(`/product/${productSku}/add-pattern/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCSRFToken() },
-            body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-            // create the new pattern element
-            const newItem = document.createElement('div');
-            newItem.className = 'pattern-item';
-            newItem.dataset.patternId = data.pattern.id;
-            newItem.innerHTML = `
-                <div class="pattern-item__info">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                            stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                        <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
-                    </svg>
-                    <a href="${data.pattern.url}" download="${data.pattern.name}"
-                        class="pattern-item__name">${data.pattern.name}</a>
-                </div>
-                <button type="button" class="pattern-item__delete-btn" data-pattern-id="${data.pattern.id}">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    Remove
-                </button>
-            `;
-            patternList.appendChild(newItem);
-
-            // clear inputs
-            newPatternName.value = '';
-            newPatternFile.value = '';
-        } else {
-            alert(data.error || 'Failed to add pattern');
-        }
-    } catch (err) {
-        console.error('Add pattern failed:', err);
-        alert('Failed to add pattern');
-    }
+    patternList.insertAdjacentHTML('beforeend', renderPatternItem(data.pattern));
+    newPatternName.value = '';
+    newPatternFile.value = '';
 });
 
-// Delete pattern — using event delegation so dynamically added items work too
 patternList.addEventListener('click', async (e) => {
     const btn = e.target.closest('.pattern-item__delete-btn');
     if (!btn) return;
-
     if (!confirm('Remove this pattern file?')) return;
 
-    const patternId = btn.dataset.patternId;
-    const item = btn.closest('.pattern-item');
-
-    try {
-        const res = await fetch(`/product/${productSku}/delete-pattern/${patternId}/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCSRFToken() }
-        });
-        const data = await res.json();
-        if (data.success) {
-            item.remove();
-        } else {
-            alert('Failed to remove pattern');
-        }
-    } catch (err) {
-        console.error('Delete pattern failed:', err);
-        alert('Failed to remove pattern');
-    }
+    const data = await postAction('delete-pattern', { pattern_id: btn.dataset.patternId });
+    if (data.success) btn.closest('.pattern-item').remove();
 });
+
+function renderPatternItem(p) {
+    return `
+        <div class="pattern-item" data-pattern-id="${p.id}">
+            <div class="pattern-item__info">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="pattern-item__icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <a href="${p.url}" download="${p.name}" class="pattern-item__name">${p.name}</a>
+            </div>
+            <button type="button" class="pattern-item__delete-btn" data-pattern-id="${p.id}">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Remove
+            </button>
+        </div>
+    `;
+}
 </script>
 {% endblock %}

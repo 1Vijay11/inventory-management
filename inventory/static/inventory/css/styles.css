@@ -1060,7 +1060,9 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     color: var(--accent-dark);
     font-weight: 600;
 }
-
+.form-textarea--add {
+    min-height: 120px;
+}
 /* ── Submit Button ────────────────────────────────────────────────────────── */
 .form-submit {
     display: inline-flex;

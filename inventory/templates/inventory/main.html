@@ -332,7 +332,7 @@
                                     </span>
                                 </td>                          
                                 <!-- total value - hiddeon on mobile  -->
-                                <td class="d-none d-md-table-cell price-cell">${{ item.total_value }}</td>
+                                <td class="d-none d-md-table-cell price-cell" id="subcategory-value-{{ item.sku }}">${{ item.total_value }}</td>
                                 <!-- Category space -->
                                 <td class="d-none d-md-table-cell"></td>
                                  <!-- Export button -->
@@ -443,9 +443,31 @@
 
 // FOLLOWING FUNCCTIONS TO PREVENT REFRESH ON Stock CHANGE
 
+function recalcDashboard() {
+    let totalValue = 0;
+    let totalStock = 0;
+
+    // Only product rows — subcategory rows are sums of their children
+    document.querySelectorAll('[id^="total_value-"]').forEach(el => {
+        totalValue += parseFloat(el.textContent.replace('$', '')) || 0;
+    });
+
+    document.querySelectorAll('tr.product-row .stock-value').forEach(el => {
+        totalStock += parseFloat(el.textContent) || 0;
+    });
+
+    // Also count subcategory CHILD rows (they're products too, just nested)
+    document.querySelectorAll('tr.subcategory-child .stock-value').forEach(el => {
+        totalStock += parseFloat(el.textContent) || 0;
+    });
+
+    document.getElementById('total-stock-amount').textContent = totalStock;
+    document.getElementById('total-stock-value').textContent = `$${totalValue.toFixed(2)}`;
+}
+
 document.querySelectorAll('.stock-btn').forEach(button => {
     button.addEventListener('click', async () => {
-        if (button.disabled) return; // cooldown on button
+        if (button.disabled) return;
         button.disabled = true;
 
         const sku = button.dataset.sku;
@@ -461,43 +483,40 @@ document.querySelectorAll('.stock-btn').forEach(button => {
                 body: JSON.stringify({ action })
             });
 
-            const data = await response.json();
-            if (!response.ok) { // if server reject action instantly stop - in views we return status400 if error
+            if (!response.ok) {
+                const data = await response.json();
                 console.warn(data.error);
                 return;
             }
-            // update the product stock when button is pressed - backend updates and frontend just shows what its should look like
-            const stockEl = document.getElementById(`stock-${sku}`);
-            stockEl.textContent = data.stock;
+
+            const data = await response.json();
+
+            // update product stock and total value
+            document.getElementById(`stock-${sku}`).textContent = data.stock;
             const totalValueEl = document.getElementById(`total_value-${sku}`);
-            totalValueEl.textContent = data.total_value;
-            // update subcategory total using real backend value
-            if (data.subcategory_stock !== null && data.subcategory_sku !== null) {
+            if (totalValueEl) totalValueEl.textContent = `$${data.total_value.toFixed(2)}`;
+
+            // update subcategory if applicable
+            if (data.subcategory_sku !== null) {
                 const subStockEl = document.getElementById(`subcategory-stock-${data.subcategory_sku}`);
-                if (subStockEl) {
-                    subStockEl.textContent = data.subcategory_stock;
-                }
+                if (subStockEl) subStockEl.textContent = data.subcategory_stock;
+
+                const subValueEl = document.getElementById(`subcategory-value-${data.subcategory_sku}`);
+                if (subValueEl) subValueEl.textContent = `$${data.subcategory_total_value.toFixed(2)}`;
             }
 
-            // update dashboard cards
-            document.getElementById('total-stock-amount').textContent = data.total_stock_amount;
-            document.getElementById('total-stock-value').textContent = `$${data.total_stock_value}`;
-        } catch (err) { 
+            recalcDashboard();
+
+        } catch (err) {
             console.error(err);
-            // location.reload();
-            console.log("ran int oan error")
         } finally {
-            setTimeout(() => {
-                button.disabled = false;
-            }, 100); // reset cooldown on button - 0.1 mil seconds
+            button.disabled = false; // re-enable immediately after response completes
         }
     });
 });
+
 function getCSRFToken() {
-    return document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrftoken='))
-        ?.split('=')[1];
+    return document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
 }
 </script>
 {% endblock %}

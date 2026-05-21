@@ -159,36 +159,27 @@ def change_stock(request, sku):
 
         if action == "add":
             product.stock_quantity += 1
-
         elif action == "minus":
             if product.stock_quantity <= 0:
-                return JsonResponse({"error": "Cannot go below 0"}, status=400) # stops the stofk from going below 0
+                return JsonResponse({"error": "Cannot go below 0"}, status=400)
             product.stock_quantity -= 1
 
         product.save()
 
-        #reset values without refreshing
-        #derived values calculations
-        active_products = Product.objects.filter(user=request.user, discontinued=False)
-        total_stock_value = active_products.aggregate(
-            total=Sum(F('price') * F('stock_quantity'))
-        )['total'] or 0
-        total_stock_amount = active_products.aggregate(
-            total=Sum('stock_quantity')
-        )['total'] or 0
-
-        # Return subcategory stock if product belongs to one
         subcategory_stock = None
+        subcategory_total_value = None
+        subcategory_sku = None
         if product.subCategory:
-            subcategory_stock = product.subCategory.total_stock  # uses our updated property
+            subcategory_stock = product.subCategory.total_stock
+            subcategory_total_value = float(product.subCategory.total_value)
+            subcategory_sku = product.subCategory.sku
 
         return JsonResponse({
             "stock": product.stock_quantity,
-            "total_value": product.total_value,
-            "total_stock_amount": total_stock_amount,
-            "total_stock_value": total_stock_value,
+            "total_value": float(product.total_value),
             "subcategory_stock": subcategory_stock,
-            "subcategory_sku": product.subCategory.sku if product.subCategory else None,
+            "subcategory_total_value": subcategory_total_value,
+            "subcategory_sku": subcategory_sku,
         })
     
 @login_required 
@@ -207,14 +198,26 @@ def create(request):
     if request.method == "POST":
 
         if "add-product" in request.POST:
-            product_form = ProductForm(request.POST, user=request.user) #reciving data from the form
-            if product_form.is_valid(): # django making sure everything is good with the new info given        
-                product = product_form.save(commit=False)  # don't save yet
-                product.user = request.user        # assign logged-in user
+            product_form = ProductForm(request.POST, request.FILES, user=request.user)
+            if product_form.is_valid():
+                product = product_form.save(commit=False)
+                product.user = request.user
                 product.save()
-                product_form.save_m2m()  # IMPORTANT for categories     
-                messages.success(request, "Succesfully Added New Product")
-                return redirect('home_page') # redirects to whatever url is named inventory_list
+                product_form.save_m2m()
+
+                # Handle pattern files
+                pattern_names = request.POST.getlist('pattern_name')
+                pattern_files = request.FILES.getlist('pattern_file')
+                for name, file in zip(pattern_names, pattern_files):
+                    if name.strip() and file:
+                        PatternFile.objects.create(
+                            product=product,
+                            name=name.strip(),
+                            file=file
+                        )
+
+                messages.success(request, "Successfully Added New Product")
+                return redirect('home_page')
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         elif "add-category" in request.POST :
             active_tab = 'categories'
@@ -393,157 +396,74 @@ def export_products_csv(request):
     return response
 @login_required
 def product_edit(request, sku):
-    # product = get_object_or_404(Product, sku=sku, user=request.user)
-    
-    # PatternFormSet = modelformset_factory(
-    #     PatternFile,
-    #     form=PatternFileForm,
-    #     extra=1,  # always show one empty form for new uploads
-    #     can_delete=True
-    # )
-
-    # if request.method == "POST":
-    #     action = request.POST.get("action")
-
-    #     if action == "delete":
-    #         product.delete()
-    #         return redirect("home_page")
-
-    #     if action == "save":
-    #         form = ProductEditForm(request.POST, request.FILES, instance=product, user=request.user)
-    #         pattern_formset = PatternFormSet(
-    #             request.POST,
-    #             request.FILES,
-    #             queryset=PatternFile.objects.filter(product=product)
-    #         )
-
-    #         if form.is_valid() and pattern_formset.is_valid():
-    #             form.save()
-
-    #             # handle pattern files
-    #             patterns = pattern_formset.save(commit=False)
-    #             for pattern in patterns:
-    #                 pattern.product = product
-    #                 pattern.save()
-
-    #             # handle deletions
-    #             for pattern in pattern_formset.deleted_objects:
-    #                 pattern.delete()
-
-    #             pattern_formset.save_m2m()
-    #             messages.success(request, "Product updated successfully")
-    #             return redirect('home_page')
-    # else:
-    #     form = ProductEditForm(instance=product, user=request.user)
-    #     pattern_formset = PatternFormSet(
-    #         queryset=PatternFile.objects.filter(product=product)
-    #     )
-
-    # return render(request, 'inventory/edit_product.html', {
-    #     'form': form,
-    #     'product': product,
-    #     'pattern_formset': pattern_formset,
-    # })
     product = get_object_or_404(Product, sku=sku, user=request.user)
-
+    form = ProductEditForm(instance=product, user=request.user)
+        # note that i used asysnc for any forms that arent the main one, as i needed things like event listeners to auto update through different methods
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "delete":
-            product.delete()
-            return redirect("home_page")
-
+        # ─── Main form: Save ───
         if action == "save":
-            form = ProductEditForm(request.POST, instance=product, user=request.user)
+            form = ProductEditForm(request.POST, request.FILES, instance=product, user=request.user)
             if form.is_valid():
                 form.save()
                 messages.success(request, "Product updated successfully")
-                return redirect('home_page')
-    else:
-        form = ProductEditForm(instance=product, user=request.user)
+                return redirect("home_page")
+            # invalid → falls through to render with errors
 
-    return render(request, 'inventory/edit_product.html', {
-        'form': form,
-        'product': product,
-    })
+        # ─── Main form: Delete  ───
+        elif action == "delete":
+            product.delete()
+            return redirect("home_page")
 
-#special Prodcut edit request may change later 
-@login_required
-def update_product_image(request, sku):
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
-    
-    product = get_object_or_404(Product, sku=sku, user=request.user)
-    action = request.POST.get("action")
-    
-    if action == "remove":
-        if product.image:
-            product.image.delete(save=False)  # delete file from disk
-            product.image = None
+        # ─── Async: upload/replace image ───
+        elif action == "upload-image":
+            image_file = request.FILES.get("image")
+            if not image_file:
+                return JsonResponse({"error": "No image provided"}, status=400)
+            if product.image:
+                product.image.delete(save=False)
+            product.image = image_file
             product.save()
-        return JsonResponse({"success": True, "image_url": None})
-    
-    if action == "upload":
-        image_file = request.FILES.get("image")
-        if not image_file:
-            return JsonResponse({"error": "No image provided"}, status=400)
-        
-        # delete old image if exists
-        if product.image:
-            product.image.delete(save=False)
-        
-        product.image = image_file
-        product.save()
-        return JsonResponse({"success": True, "image_url": product.image.url})
-    
-    return JsonResponse({"error": "Invalid action"}, status=400)
-@login_required
-def update_product_description(request, sku):
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
-    
-    product = get_object_or_404(Product, sku=sku, user=request.user)
-    
-    try:
-        data = json.loads(request.body)
-        product.description = data.get("description", "")
-        product.save()
-        return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
-@login_required
-def add_pattern_file(request, sku):
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
-    
-    product = get_object_or_404(Product, sku=sku, user=request.user)
-    
-    name = request.POST.get("name", "").strip()
-    file = request.FILES.get("file")
-    
-    if not name:
-        return JsonResponse({"error": "File name is required"}, status=400)
-    if not file:
-        return JsonResponse({"error": "File is required"}, status=400)
-    
-    pattern = PatternFile.objects.create(
-        product=product,
-        name=name,
-        file=file
-    )
-    
-    return JsonResponse({
-        "success": True,
-        "pattern": {
-            "id": pattern.id,
-            "name": pattern.name,
-            "url": pattern.file.url,
-        }
-    })
+            return JsonResponse({"success": True, "image_url": product.image.url})
 
+        # ─── Async: remove image ───
+        elif action == "remove-image":
+            if product.image:
+                product.image.delete(save=False)
+                product.image = None
+                product.save()
+            return JsonResponse({"success": True})
 
-@login_required
-def delete_pattern_file(request, sku, pattern_id):
+        # ─── Async: save description on blur ───
+        elif action == "save-description":
+            product.description = request.POST.get("description", "")
+            product.save()
+            return JsonResponse({"success": True})
+
+        # ─── Async: add pattern file ───
+        elif action == "add-pattern":
+            name = request.POST.get("pattern_name", "").strip()
+            pattern_file = request.FILES.get("pattern_file")
+            if not name or not pattern_file:
+                return JsonResponse({"error": "Name and file required"}, status=400)
+            pattern = PatternFile.objects.create(product=product, name=name, file=pattern_file)
+            return JsonResponse({
+                "success": True,
+                "pattern": {
+                    "id": pattern.id,
+                    "name": pattern.name,
+                    "url": pattern.file.url,
+                },
+            })
+
+        # ─── Async: delete pattern file ───
+        elif action == "delete-pattern":
+            pattern_id = request.POST.get("pattern_id")
+            PatternFile.objects.filter(id=pattern_id, product=product).delete()
+            return JsonResponse({"success": True})
+
+    return render(request, "inventory/edit_product.html", {"form": form, "product": product})
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
