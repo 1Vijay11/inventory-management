@@ -4,7 +4,7 @@ from django.contrib.auth import login  # log users in after signup/login
 from django.contrib.auth.decorators import login_required  # restrict views to authenticated users
 from django.contrib import messages  # display success/error messages to users
 # Database queries & ORM tools
-from django.db.models import Q, Max, Sum, F  # advanced queries, aggregations, and field operations
+from django.db.models import Q, Max, Sum, F , Min # advanced queries, aggregations, and field operations
 from .models import Product, Category, SubCategory, PatternFile  # database tables for your app
 from django.forms import modelformset_factory
 from django.shortcuts import render, redirect, get_object_or_404
@@ -47,16 +47,26 @@ def home_page(request):
             products = products.filter(categories__name=category)
 
 
-    #||||||||||||||   zero stock logic   ||||||||||||||
-    current_show_zero_stock = request.GET.get('show_zero_stock', "")
-    show_zero = current_show_zero_stock == "show_empty_stock" # returns true or false depnign if eqaution is eqaul
-    if not show_zero :
-        products = products.filter(stock_quantity__gt=0) # gt = greater than
-    
-    #||||||||||||||    Discontinued logic   ||||||||||||||
-    show_discontinued = request.GET.get('show_discontinued', "")
-    if not show_discontinued :
-        products = products.filter(discontinued=False) 
+    # ||||||||||||||| Show zero stock / discontinued toggles |||||||||||||||||||
+    show_zero = request.GET.get('show_zero_stock', '') == 'show_empty_stock'
+    show_discontinued = request.GET.get('show_discontinued', '') == 'show_discontinued'
+
+    # ---- State filters (out of stock / discontinued) from dropdown ----
+    state_filters = request.GET.getlist('filter_state', [])
+
+    if 'out_of_stock' in state_filters:
+        # User wants ONLY out of stock — override toggle, force-show them
+        products = products.filter(stock_quantity=0)
+        show_zero = True  # so the toggle UI reflects what we're showing
+    elif not show_zero:
+        products = products.filter(stock_quantity__gt=0)
+
+    if 'discontinued' in state_filters:
+        # User wants ONLY discontinued — override toggle
+        products = products.filter(discontinued=True)
+        show_discontinued = True
+    elif not show_discontinued:
+        products = products.filter(discontinued=False)
     
         # ||||||||||||||             SUBCATEGORY LOGIC               ||||||||||||||
     products_with_sub_category = products.filter(subCategory__isnull=False) # seperates products into 2 list 1with and 1 without subcategorys
@@ -75,25 +85,36 @@ def home_page(request):
             "discontinued" : product.discontinued,
             "object" : product 
         })
-    filtered_sub_categorys = sub_categorys.filter(products__in=products_with_sub_category).distinct() # applyign the filters, distint so there no reapeats *very inportant*
-    for sub in filtered_sub_categorys:   
-            sub_products = products_with_sub_category.filter(subCategory=sub)
-            if not sub_products.exists():   
-                continue        
-            combined_products.append({
-                "type": "subcategory",
-                "name": sub.name,
-                "sku": sub.sku,  # your Min("sku") property
-                "price": sub.price,  # your Min("price")
-                "stock_quantity": sub.total_stock,
-                "total_value" : sub.total_value,
-                "categories": "",
-                "object" : sub 
-            })
+
+    filtered_sub_categorys = sub_categorys.filter(products__in=products_with_sub_category).distinct()
+
+    for sub in filtered_sub_categorys:
+        sub_products = products_with_sub_category.filter(subCategory=sub)
+        if not sub_products.exists():
+            continue
+
+        # Compute totals from the FILTERED products only, not from sub's properties
+        sub_totals = sub_products.aggregate(
+            total_stock=Sum('stock_quantity'),
+            total_value=Sum(F('price') * F('stock_quantity')),
+            min_price=Min('price'),
+            min_sku=Min('sku'),
+        )
+
+        combined_products.append({
+            "type": "subcategory",
+            "name": sub.name,
+            "sku": sub_totals['min_sku'] or 0,
+            "price": sub_totals['min_price'] or 0,
+            "stock_quantity": sub_totals['total_stock'] or 0,
+            "total_value": sub_totals['total_value'] or 0,
+            "categories": "",
+            "object": sub
+        })
     #||||||||||||||   sorting logic  ||||||||||||||
-    sort_key = request.GET.get('sort', 'name') # gets the sort from main.html and if nothing is selected automatically sorts by name
+    sort_key = request.GET.get('sort', 'price') # gets the sort from main.html and if nothing is selected automatically sorts by name
     if not sort_key:
-        sort_key = 'name'
+        sort_key = 'price'
     reverse = False
     if sort_key.startswith("-"):
         reverse = True

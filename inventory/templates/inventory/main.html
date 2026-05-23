@@ -85,6 +85,24 @@
                     {% endif %}
                 </button>
                 <ul class="dropdown-menu filter-bar__menu p-3">
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input filter-check" type="checkbox"
+                                    name="filter_state" value="out_of_stock"
+                                    {% if 'out_of_stock' in current_state_filters %}checked{% endif %}>
+                                <label class="form-check-label">Out of Stock</label>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="form-check">
+                                <input class="form-check-input filter-check" type="checkbox"
+                                    name="filter_state" value="discontinued"
+                                    {% if 'discontinued' in current_state_filters %}checked{% endif %}>
+                                <label class="form-check-label">Discontinued</label>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+
                     {% for category in categorys %}
                         <li>
                             <div class="form-check">
@@ -95,8 +113,9 @@
                             </div>
                         </li>
                     {% endfor %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><button type="submit" class="filter-bar__apply w-100">Apply</button></li>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button type="submit" class="filter-bar__apply w-100">Apply</button></li>
                 </ul>
             </div>
 
@@ -440,7 +459,63 @@
 
         });
     }, 0); 
+// ============================================================
+//  Filter state persistence across edit page
+// ============================================================
+const FILTER_STATE_KEY = 'inventoryFilterState';
 
+// ── On page load: restore filters if we have saved state and URL is bare ──
+(function restoreFilterState() {
+    const saved = sessionStorage.getItem(FILTER_STATE_KEY);
+    if (!saved) return;
+
+    const state = JSON.parse(saved);
+    const currentQuery = window.location.search;
+
+    // Only restore if user landed here with a bare URL (came back from edit).
+    // If they have their own query params, respect that.
+    if (currentQuery === '' && state.query) {
+        // Redirect to the saved URL — page will reload with filters applied
+        window.location.replace('/?' + state.query);
+        return;
+    }
+
+    // Already on the filtered URL → just re-expand the subcategories
+    if (state.expandedSubcategories && state.expandedSubcategories.length) {
+        state.expandedSubcategories.forEach(id => {
+            const target = document.getElementById(id);
+            const trigger = document.querySelector(`[data-bs-target="#${id}"]`);
+            if (target && trigger) {
+                target.classList.add('show');
+                trigger.setAttribute('aria-expanded', 'true');
+            }
+        });
+    }
+})();
+
+// ── Before navigating to edit: save current filter state ──
+document.querySelectorAll('.product-link').forEach(link => {
+    link.addEventListener('click', () => {
+        // Strip the leading "?" from search
+        const query = window.location.search.replace(/^\?/, '');
+
+        // Find all currently-expanded subcategory rows
+        const expandedSubcategories = Array.from(
+            document.querySelectorAll('.subcategory-row[aria-expanded="true"]')
+        ).map(row => row.getAttribute('data-bs-target')?.replace('#', ''))
+         .filter(Boolean);
+
+        sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
+            query: query,
+            expandedSubcategories: expandedSubcategories
+        }));
+    });
+});
+
+// ── If user manually changes filters, clear saved state so it doesn't fight them ──
+document.querySelector('.filter-bar__form')?.addEventListener('submit', () => {
+    sessionStorage.removeItem(FILTER_STATE_KEY);
+});
 // FOLLOWING FUNCCTIONS TO PREVENT REFRESH ON Stock CHANGE
 
 function recalcDashboard() {
