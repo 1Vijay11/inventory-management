@@ -48,8 +48,13 @@ def home_page(request):
 
 
     # ||||||||||||||| Show zero stock / discontinued toggles |||||||||||||||||||
-    show_zero = request.GET.get('show_zero_stock', '') == 'show_empty_stock'
+# If form was submitted, respect the checkbox state. Otherwise default to True.
+    if 'form_submitted' in request.GET:
+        show_zero = request.GET.get('show_zero_stock', '') == 'show_empty_stock'
+    else:
+        show_zero = True    
     show_discontinued = request.GET.get('show_discontinued', '') == 'show_discontinued'
+
 
     # ---- State filters (out of stock / discontinued) from dropdown ----
     state_filters = request.GET.getlist('filter_state', [])
