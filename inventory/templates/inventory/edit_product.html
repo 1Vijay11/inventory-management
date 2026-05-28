@@ -95,7 +95,7 @@
                         stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                     <path d="M14 2v6h6" stroke="currentColor" stroke-width="1.5"/>
                 </svg>
-                <a href="{{ pattern.file.url }}" download="{{ pattern.name }}"
+                <a href="{{ pattern.file.url }}" target="_blank" rel="noopener"
                     class="pattern-item__name">{{ pattern.name }}</a>
             {% endif %}
         </div>
@@ -424,14 +424,15 @@ function renderPatternItem(p) {
 
     const linkAttrs = p.is_link
         ? `href="${p.url}" target="_blank" rel="noopener"`
-        : `href="${p.url}" download="${p.name}"`;
+    : `href="${p.url}" target="_blank" rel="noopener"`;
 
     return `
         <div class="pattern-item" data-pattern-id="${p.id}">
             <div class="pattern-item__info">
                 ${icon}
-                <a ${linkAttrs} class="pattern-item__name">${p.name}</a>
+                <a href="${p.url}" target="_blank" rel="noopener" class="pattern-item__name">${p.name}</a>
             </div>
+        
             <button type="button" class="pattern-item__delete-btn" data-pattern-id="${p.id}">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

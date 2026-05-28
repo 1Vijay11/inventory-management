@@ -324,9 +324,10 @@
                         <!-- ||||||||||||||||||||||      SubCategory LOGIC        ||||||||||||||||||||||||||| -->
                         {% elif item.type == "subcategory" %}
                             <!-- Subcategory parent row -->
-                            <tr class="subcategory-row" style="cursor: pointer;"
-                                data-bs-toggle="collapse" data-bs-target="#{{ item.sku }}"
-                                aria-expanded="false">
+                                <!-- Parent row — change data-bs-target to a class selector -->
+                                <tr class="subcategory-row" style="cursor: pointer;"
+                                    data-bs-toggle="collapse" data-bs-target=".collapse-sub-{{ item.sku }}"
+                                    aria-expanded="false">
                                 <!-- Name -->
                                 <td colspan="1">
                                     <div class="subcategory-label">
@@ -361,8 +362,8 @@
                             <!-- ||||||||||||||||||||||||||||||||||||||         Subcategory child rows           |||||||||||||||||||||||||||||||||||||||||-->
                             {% for product in item.object.products.all %}
                                 {% if product in filtered_sub_category_list %}
-                                    <tr class="collapse collapse-row subcategory-child {% if product.discontinued %}discontinued-row{% endif %}" 
-                                        id="{{ item.sku }}" 
+                                    <!-- Child rows — unique IDs, shared collapse class -->
+                                    <tr class="collapse collapse-sub-{{ item.sku }} subcategory-child {% if product.discontinued %}discontinued-row{% endif %}"
                                         data-parent="{{ item.sku }}">
                                         <!-- Product Name -->
                                         <td>
@@ -475,20 +476,17 @@ const FILTER_STATE_KEY = 'inventoryFilterState';
     // Only restore if user landed here with a bare URL (came back from edit).
     // If they have their own query params, respect that.
     if (currentQuery === '' && state.query) {
-        // Redirect to the saved URL — page will reload with filters applied
         window.location.replace('/?' + state.query);
         return;
     }
 
-    // Already on the filtered URL → just re-expand the subcategories
+    // Already on the filtered URL → re-expand the subcategories
     if (state.expandedSubcategories && state.expandedSubcategories.length) {
-        state.expandedSubcategories.forEach(id => {
-            const target = document.getElementById(id);
-            const trigger = document.querySelector(`[data-bs-target="#${id}"]`);
-            if (target && trigger) {
-                target.classList.add('show');
-                trigger.setAttribute('aria-expanded', 'true');
-            }
+        state.expandedSubcategories.forEach(sku => {
+            const children = document.querySelectorAll(`.collapse-sub-${sku}`);
+            const trigger = document.querySelector(`[data-bs-target=".collapse-sub-${sku}"]`);
+            children.forEach(el => el.classList.add('show'));
+            if (trigger) trigger.setAttribute('aria-expanded', 'true');
         });
     }
 })();
@@ -496,13 +494,11 @@ const FILTER_STATE_KEY = 'inventoryFilterState';
 // ── Before navigating to edit: save current filter state ──
 document.querySelectorAll('.product-link').forEach(link => {
     link.addEventListener('click', () => {
-        // Strip the leading "?" from search
         const query = window.location.search.replace(/^\?/, '');
 
-        // Find all currently-expanded subcategory rows
         const expandedSubcategories = Array.from(
             document.querySelectorAll('.subcategory-row[aria-expanded="true"]')
-        ).map(row => row.getAttribute('data-bs-target')?.replace('#', ''))
+        ).map(row => row.getAttribute('data-bs-target')?.replace('.collapse-sub-', ''))
          .filter(Boolean);
 
         sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify({

@@ -371,7 +371,6 @@
 {% block scripts %}
 <script>
     // Tab switching
-    // Tab switching
     const tabs = document.querySelectorAll('.add-tab');
     const panels = document.querySelectorAll('.tab-panel');
 
@@ -483,19 +482,14 @@ if (addPatternToListBtn) {
         const id = patternCounter++;
 
         if (addPatternType === 'file') {
-            const name = document.getElementById('addPatternNameInput').value.trim();
+            const nameInput = document.getElementById('addPatternNameInput');
             const fileInput = document.getElementById('addPatternFileInput');
+            const name = nameInput.value.trim();
             const file = fileInput.files[0];
             if (!name) return alert('Please enter a file name');
             if (!file) return alert('Please choose a file');
 
-            // Clone the file input (can't set file values programmatically)
-            const hiddenFile = fileInput.cloneNode(true);
-            hiddenFile.id = '';
-            hiddenFile.name = 'pattern_file';
-            hiddenFile.style.display = 'none';
-            hiddenFile.classList.remove('form-input');
-
+            // ── Build hidden name + type inputs ──
             const hiddenName = document.createElement('input');
             hiddenName.type = 'hidden';
             hiddenName.name = 'pattern_name';
@@ -506,24 +500,41 @@ if (addPatternToListBtn) {
             hiddenType.name = 'pattern_type';
             hiddenType.value = 'file';
 
+            // ── MOVE the actual file input (don't clone it) ──
+            // cloneNode loses the FileList, so we take the real input and replace it.
+            const movedFileInput = fileInput;          // grab reference
+            movedFileInput.removeAttribute('id');
+            movedFileInput.name = 'pattern_file';
+            movedFileInput.style.display = 'none';
+            movedFileInput.classList.remove('form-input');
+
+            // Create a fresh empty file input to replace the one we moved
+            const freshFileInput = document.createElement('input');
+            freshFileInput.type = 'file';
+            freshFileInput.id = 'addPatternFileInput';
+            freshFileInput.className = 'form-input';
+            fileInput.parentNode.appendChild(freshFileInput);
+
+            // Wrap everything and stash in hidden container
             const wrapper = document.createElement('div');
             wrapper.id = `pattern-hidden-${id}`;
             wrapper.appendChild(hiddenName);
             wrapper.appendChild(hiddenType);
-            wrapper.appendChild(hiddenFile);
+            wrapper.appendChild(movedFileInput);
             addPatternHidden.appendChild(wrapper);
 
             // Show pill
             addPatternDisplay.insertAdjacentHTML('beforeend', renderAddPill(id, name, false));
-
-            document.getElementById('addPatternNameInput').value = '';
-            fileInput.value = '';
+            nameInput.value = '';
 
         } else {
-            const name = document.getElementById('addPatternLinkName').value.trim();
-            const url = document.getElementById('addPatternLinkUrl').value.trim();
+            // Link path — your existing code is fine, but here's the cleaner version
+            const linkNameInput = document.getElementById('addPatternLinkName');
+            const linkUrlInput  = document.getElementById('addPatternLinkUrl');
+            const name = linkNameInput.value.trim();
+            const url  = linkUrlInput.value.trim();
             if (!name) return alert('Please enter a link name');
-            if (!url) return alert('Please enter a URL');
+            if (!url)  return alert('Please enter a URL');
 
             const hiddenName = document.createElement('input');
             hiddenName.type = 'hidden';
@@ -547,11 +558,9 @@ if (addPatternToListBtn) {
             wrapper.appendChild(hiddenUrl);
             addPatternHidden.appendChild(wrapper);
 
-            // Show pill
             addPatternDisplay.insertAdjacentHTML('beforeend', renderAddPill(id, name, true));
-
-            document.getElementById('addPatternLinkName').value = '';
-            document.getElementById('addPatternLinkUrl').value = '';
+            linkNameInput.value = '';
+            linkUrlInput.value = '';
         }
     });
 

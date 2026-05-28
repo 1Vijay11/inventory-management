@@ -211,7 +211,7 @@ def change_stock(request, sku):
 @login_required 
 def create(request):
     products = Product.objects.filter(user=request.user)
-    category = Category.objects.filter(user=request.user)
+    category = Category.objects.filter(user=request.user).order_by('name')
     sub_Category = SubCategory.objects.filter(user=request.user)
 
     product_form = ProductForm(user=request.user)
@@ -231,32 +231,39 @@ def create(request):
                 product.save()
                 product_form.save_m2m()
 
-                # Explicitly save image if provided
-                if 'image' in request.FILES:
-                    product.image = request.FILES['image']
-                    product.save()
-
-                # Handle pattern files and links
+                # ── Pattern files & links: zip them together by index ──
                 pattern_names = request.POST.getlist('pattern_name')
-                pattern_files = request.FILES.getlist('pattern_file')
-                pattern_urls = request.POST.getlist('pattern_url')
                 pattern_types = request.POST.getlist('pattern_type')
+                pattern_urls  = request.POST.getlist('pattern_url')   # only link rows
+                pattern_files = request.FILES.getlist('pattern_file') # only file rows
 
+                # Walk both lists in parallel using separate cursors
+                url_idx = 0
+                file_idx = 0
                 for i, ptype in enumerate(pattern_types):
                     name = pattern_names[i].strip() if i < len(pattern_names) else ''
                     if not name:
+                        # still advance the cursor for whichever input this row used
+                        if ptype == 'link': url_idx += 1
+                        else: file_idx += 1
                         continue
+
                     if ptype == 'link':
-                        url = pattern_urls[i].strip() if i < len(pattern_urls) else ''
+                        url = pattern_urls[url_idx].strip() if url_idx < len(pattern_urls) else ''
+                        url_idx += 1
                         if url:
                             PatternFile.objects.create(product=product, name=name, url=url)
                     else:
-                        file = pattern_files.pop(0) if pattern_files else None
+                        file = pattern_files[file_idx] if file_idx < len(pattern_files) else None
+                        file_idx += 1
                         if file:
                             PatternFile.objects.create(product=product, name=name, file=file)
 
                 messages.success(request, "Successfully Added New Product")
                 return redirect('home_page')
+            else:
+                # Form invalid — fall through to render with errors
+                messages.error(request, "Please fix the errors below")
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\               category logic           \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         elif "add-category" in request.POST :
             active_tab = 'categories'

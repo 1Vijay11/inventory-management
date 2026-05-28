@@ -5,7 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 class ProductForm(forms.ModelForm):
-    subCategory = forms.ModelChoiceField( # this is used to give a drop down and a single select for subcategory 
+    subCategory = forms.ModelChoiceField(
         queryset=SubCategory.objects.all(),
         required=False,
         empty_label="No subcategory",
@@ -13,12 +13,16 @@ class ProductForm(forms.ModelForm):
     
     class Meta:
         model = Product
-        fields = ['sku', 'name', 'price', 'stock_quantity', 'categories', 'subCategory', 'discontinued']
+        fields = [
+            'sku', 'name', 'price', 'stock_quantity',
+            'categories', 'subCategory', 'discontinued',
+            'image', 'description',
+        ]
         widgets = {
-            'categories': forms.CheckboxSelectMultiple(), # just here to make the category select prettier ,
+            'categories': forms.CheckboxSelectMultiple(),
             'discontinued': forms.CheckboxInput(attrs={'class': 'toggle-input'}),
-
         }
+    # ... rest stays the same
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
