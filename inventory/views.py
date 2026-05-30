@@ -36,7 +36,7 @@ def home_page(request):
     #|||||||||||||| search logic ||||||||||||||
     search = request.GET.get('search', '')
     if search:
-        products = products.filter(Q(name__icontains=search) | Q(sku__contains=search)) # __icontains is a looking for a case insensitive partial max
+        products = products.filter(Q(name__icontains=search) | Q(sku__contains=search) |     Q(subCategory__name__icontains=search)) # __icontains is a looking for a case insensitive partial max
         # Q is need for any clauses that require multiple arguments -> use of OR
 
     #||||||||||||||   category sort Logic   ||||||||||||||
@@ -409,6 +409,33 @@ def create(request):
 
     })
 @login_required
+def edit_category(request, cat_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    category = get_object_or_404(Category, id=cat_id, user=request.user)
+    new_name = request.POST.get("name", "").strip()
+    if len(new_name) < 3:
+        return JsonResponse({"error": "Name must be at least 3 characters."}, status=400)
+    if Category.objects.filter(name__iexact=new_name, user=request.user).exclude(pk=cat_id).exists():
+        return JsonResponse({"error": f'"{new_name}" already exists.'}, status=400)
+    category.name = new_name.title()
+    category.save()
+    return JsonResponse({"success": True, "name": category.name})
+
+@login_required
+def edit_subcategory(request, sub_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    sub = get_object_or_404(SubCategory, id=sub_id, user=request.user)
+    new_name = request.POST.get("name", "").strip()
+    if len(new_name) < 3:
+        return JsonResponse({"error": "Name must be at least 3 characters."}, status=400)
+    if SubCategory.objects.filter(name__iexact=new_name, user=request.user).exclude(pk=sub_id).exists():
+        return JsonResponse({"error": f'"{new_name}" already exists.'}, status=400)
+    sub.name = new_name.title()
+    sub.save()
+    return JsonResponse({"success": True, "name": sub.name})
+@login_required
 def export_products_csv(request):
     # Create response with CSV header
     response = HttpResponse(content_type='text/csv')
@@ -486,7 +513,12 @@ def product_edit(request, sku):
             product.description = request.POST.get("description", "")
             product.save()
             return JsonResponse({"success": True})
-# ─── Async: add pattern file or link ───
+        # ─── Async: save pattern description on blur ───
+        elif action == "save-patternDescription":
+            product.patternDescription = request.POST.get("patternDescription", "")
+            product.save()
+            return JsonResponse({"success": True})
+        # ─── Async: add pattern file or link ───
         elif action == "add-pattern":
             name = request.POST.get("pattern_name", "").strip()
             pattern_type = request.POST.get("pattern_type", "file")

@@ -16,7 +16,7 @@ class ProductForm(forms.ModelForm):
         fields = [
             'sku', 'name', 'price', 'stock_quantity',
             'categories', 'subCategory', 'discontinued',
-            'image', 'description',
+            'image', 'description','patternDescription',
         ]
         widgets = {
             'categories': forms.CheckboxSelectMultiple(),

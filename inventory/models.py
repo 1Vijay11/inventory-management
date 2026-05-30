@@ -87,6 +87,8 @@ class Product(models.Model):
     #for the editpage info
     image = models.ImageField(upload_to=product_image_path, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
+    patternDescription = models.TextField(null=True, blank=True)
+
     # creating a many to many relationship, blank = true => alows products to have no category
     categories = models.ManyToManyField(Category, blank=True, related_name="products")
 

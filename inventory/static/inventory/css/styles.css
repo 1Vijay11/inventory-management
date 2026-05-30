@@ -527,7 +527,27 @@ nav.inventory-navbar .nav-btn-ghost:hover {
 }
 
 .filter-bar__search-btn:hover { background-color: var(--accent-dark); }
+.existing-item__edit-input {
+    flex: 1;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.875rem;
+    height: auto;
+}
 
+.existing-item__save {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent, #e8927c);
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.existing-item__save:hover {
+    color: var(--accent-dark, #c97660);
+}
 /* ── Inventory Table ─────────────────────────────────────────────────────────
    Uses: --surface-page, --border-table, --border-row, --surface-selected
    ──────────────────────────────────────────────────────────────────────────── */
