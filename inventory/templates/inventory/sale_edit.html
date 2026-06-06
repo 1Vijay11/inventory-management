@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <a href="{% url 'market_detail' sale.market.id %}" class="btn btn-outline-secondary btn-sm mb-3">
+        Back to Dashboard
+    </a>
+
+    <h1 class="mb-1">Edit Sale #{{ sale.id }}</h1>
+    <p class="text-muted mb-4">{{ sale.created_at|date:"N j, Y g:i A" }}</p>
+
+    <!-- Items -->
+    <h2 class="mb-3">Items</h2>
+    <form method="POST">
+        {% csrf_token %}
+        <table class="table table-bordered mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Unit Price</th>
+                    <th>Qty</th>
+                    <th>Line Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.product_name_snapshot }}</td>
+                    <td>{{ item.product_sku_snapshot }}</td>
+                    <td>${{ item.unit_price_snapshot }}</td>
+                    <td>
+                        <input type="number" name="quantity_{{ item.id }}"
+                            value="{{ item.quantity }}" min="1"
+                            class="form-control form-control-sm" style="width: 70px;">
+                    </td>
+                    <td>${{ item.line_total }}</td>
+                    <td>
+                        <button type="submit" name="action" value="remove_item"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Remove this item?')"
+                            formaction="{% url 'sale_edit' sale.id %}">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Sale Details -->
+        <h2 class="mb-3">Sale Details</h2>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="cash" {% if sale.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                    <option value="card" {% if sale.payment_method == 'card' %}selected{% endif %}>Card</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Discount ($)</label>
+                <input type="number" name="discount_amount" step="0.01" min="0"
+                    value="{{ sale.discount_amount }}" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tip ($)</label>
+                <input type="number" name="tip_amount" step="0.01" min="0"
+                    value="{{ sale.tip_amount }}" class="form-control">
+            </div>
+        </div>
+        <div class="col-md-3">
+    <label class="form-label">Customer Type</label>
+    <select name="customer_type" class="form-select">
+        <option value="child" {% if sale.customer_type == 'child' %}selected{% endif %}>Child</option>
+        <option value="teen" {% if sale.customer_type == 'teen' %}selected{% endif %}>Teen</option>
+        <option value="young_adult" {% if sale.customer_type == 'young_adult' %}selected{% endif %}>Young Adult</option>
+        <option value="adult" {% if sale.customer_type == 'adult' %}selected{% endif %}>Adult</option>
+    </select>
+</div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
+            <button type="submit" name="action" value="delete" class="btn btn-danger"
+                onclick="return confirm('Delete Sale #{{ sale.id }}? This cannot be undone.')">
+                Delete Sale
+            </button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}

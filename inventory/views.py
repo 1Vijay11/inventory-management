@@ -3,27 +3,23 @@ from django.http import HttpResponse, JsonResponse  # standard and JSON response
 from django.contrib.auth import login  # log users in after signup/login
 from django.contrib.auth.decorators import login_required  # restrict views to authenticated users
 from django.contrib import messages  # display success/error messages to users
+from django.utils import timezone # auto add curent date on market start
+
 # Database queries & ORM tools
-from django.db.models import Q, Max, Sum, F , Min # advanced queries, aggregations, and field operations
-from .models import Product, Category, SubCategory, PatternFile  # database tables for your app
+from django.db.models.functions import Coalesce
+from django.db.models import Q, Max, Sum, F, Min, Count, Value, DecimalField
+from .models import Product, Category, SubCategory, PatternFile, Market, Sale, SaleItem, Cart, CartItem, StockSnapshot, MarketExpense
 from django.forms import modelformset_factory
 from django.shortcuts import render, redirect, get_object_or_404
-
 # Forms
-from .forms import (
-    ProductForm,
-    CategoryForm,
-    SubCategoryForm,
-    CustomUserCreationForm,
-    PatternFileForm,
-    ProductEditForm
-) 
+from .forms import ProductForm, CategoryForm, SubCategoryForm, CustomUserCreationForm, PatternFileForm, ProductEditForm, MarketForm, SaleForm, MarketExpenseForm
 # CSV handling
 import csv  
 from csv import DictWriter, DictReader  # read/write CSVs as dictionaries
 # Utilities
 import io  # handle in-memory file operations (e.g., CSV export)
 import json  # parse/generate JSON data
+from django.urls import reverse
 
 @login_required
 def home_page(request):
@@ -577,6 +573,546 @@ def product_edit(request, sku):
     pattern.delete()
     
     return JsonResponse({"success": True})
+# =========================
+# Phase 2 - Market Mode Views
+# =========================
+@login_required
+def market_dashboard(request):
+    active_market = Market.objects.filter(user=request.user, is_active=True).first()
+    return render (request, 'inventory/market_dashboard.html' ,
+                   {
+                       'active_market' : active_market
+                   })
+@login_required
+def market_start(request):
+    if Market.objects.filter(user=request.user, is_active=True).exists():
+        messages.error(request, "You already have an active market. End it before starting a new one.")
+        return redirect('market_dashboard')
+
+    form = MarketForm()
+    if request.method == 'POST':
+        form = MarketForm(request.POST)
+        if form.is_valid():
+            market = form.save(commit=False)
+            market.user = request.user
+            market.is_active = True
+            market.save()
+
+            # Take a stock snapshot of all products at market start
+            products = Product.objects.filter(user=request.user, discontinued=False)
+            snapshots = [
+                StockSnapshot(
+                    market=market,
+                    product=product,
+                    product_name_snapshot=product.name,
+                    product_sku_snapshot=product.sku,
+                    stock_at_start=product.stock_quantity,
+                )
+                for product in products
+            ]
+            StockSnapshot.objects.bulk_create(snapshots)
+
+            messages.success(request, f"'{market.name}' has started!")
+            return redirect('market_detail', market_id=market.id)
+
+    return render(request, 'inventory/market_start.html', {'form': form})
+    
+@login_required
+def market_end(request, market_id):
+    market = get_object_or_404(Market, id=market_id, user=request.user, is_active=True)
+    sales = market.sales.prefetch_related('items').order_by('-created_at')
+
+    # Same stats as market_detail
+    total_revenue = sales.aggregate(t=Sum('total'))['t'] or 0
+    total_tips = sales.aggregate(t=Sum('tip_amount'))['t'] or 0
+    total_transactions = sales.count()
+    cash_total = sales.filter(payment_method='cash').aggregate(t=Sum('total'))['t'] or 0
+    card_total = sales.filter(payment_method='card').aggregate(t=Sum('total'))['t'] or 0
+    avg_sale = round(float(total_revenue) / total_transactions, 2) if total_transactions else 0
+
+    if request.method == 'POST':
+        market.ended_at = timezone.now()
+        market.is_active = False
+        market.save()
+        messages.success(request, f"'{market.name}' has ended.")
+        return redirect('market_dashboard')
+
+    return render(request, 'inventory/market_end.html', {
+        'market': market,
+        'sales': sales,
+        'total_revenue': total_revenue,
+        'total_tips': total_tips,
+        'total_transactions': total_transactions,
+        'cash_total': cash_total,
+        'card_total': card_total,
+        'avg_sale': avg_sale,
+    })
+@login_required
+def sale_new(request):
+    active_market = get_object_or_404(Market, user=request.user, is_active=True)
+
+    cart, created = Cart.objects.get_or_create(
+        market=active_market,
+        user=request.user,
+    )
+
+    search = request.GET.get('search', '')
+    search_results = []
+    if search:
+        search_results = Product.objects.filter(
+            user=request.user,
+            discontinued=False,
+        ).filter(Q(name__icontains=search) | Q(sku__icontains=search))
+
+    cart_items = cart.cart_items.select_related('product').all()
+    sale_form = SaleForm()
+
+    return render(request, 'inventory/sale_new.html', {
+        'active_market': active_market,
+        'cart': cart,
+        'cart_items': cart_items,
+        'search_results': search_results,
+        'search': search,
+        'sale_form': sale_form,
+    })
+
+
+@login_required
+def sale_add_item(request, sku):
+    if request.method != 'POST':
+        return redirect('sale_new')
+
+    active_market = get_object_or_404(Market, user=request.user, is_active=True)
+    product = get_object_or_404(Product, sku=sku, user=request.user, discontinued=False)
+
+    cart, created = Cart.objects.get_or_create(
+        market=active_market,
+        user=request.user,
+    )
+
+    # Increment if already in cart, otherwise create
+    cart_item, item_created = CartItem.objects.get_or_create(cart=cart, product=product)
+    if not item_created:
+        cart_item.quantity += 1
+        cart_item.save()
+
+    return redirect(f"{reverse('sale_new')}?search={request.POST.get('search', '')}")
+
+
+@login_required
+def sale_remove_item(request, cart_item_id):
+    if request.method != 'POST':
+        return redirect('sale_new')
+
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart__user=request.user)
+    
+    if cart_item.quantity > 1:
+        cart_item.quantity -= 1
+        cart_item.save()
+    else:
+        cart_item.delete()
+
+    return redirect('sale_new')
+
+@login_required
+def sale_complete(request):
+    if request.method != 'POST':
+        return redirect('sale_new')
+
+    active_market = get_object_or_404(Market, user=request.user, is_active=True)
+    cart = get_object_or_404(Cart, market=active_market, user=request.user)
+    cart_items = cart.cart_items.select_related('product').all()
+
+    if not cart_items.exists():
+        messages.error(request, "Your cart is empty.")
+        return redirect('sale_new')
+
+    form = SaleForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please fix the errors below.")
+        return redirect('sale_new')
+
+    payment_method = form.cleaned_data['payment_method']
+    customer_type = form.cleaned_data['customer_type']
+    discount_amount = form.cleaned_data['discount_amount'] or 0
+    tip_amount = form.cleaned_data['tip_amount'] or 0
+
+    subtotal = float(cart.subtotal)
+    total = round(subtotal - float(discount_amount) + float(tip_amount), 2)
+
+    sale = Sale.objects.create(
+        market=active_market,
+        payment_method=payment_method,
+        customer_type=customer_type,
+        subtotal=subtotal,
+        discount_amount=discount_amount,
+        tip_amount=tip_amount,
+        total=total,
+    )
+
+    for item in cart_items:
+        SaleItem.objects.create(
+            sale=sale,
+            product=item.product,
+            product_name_snapshot=item.product.name,
+            product_sku_snapshot=item.product.sku,
+            unit_price_snapshot=item.product.price,
+            quantity=item.quantity,
+            line_total=float(item.line_total),
+        )
+        item.product.stock_quantity = max(0, item.product.stock_quantity - item.quantity)
+        item.product.save()
+
+    cart.delete()
+
+    messages.success(request, f"Sale #{sale.id} completed — ${total}")
+    return redirect('market_detail', market_id=active_market.id)
+
+@login_required
+def market_detail(request, market_id):
+    market = get_object_or_404(Market, id=market_id, user=request.user)
+    sales = market.sales.prefetch_related('items').order_by('-created_at')
+    expenses = market.expenses.all()
+    expense_form = MarketExpenseForm()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # ── Save notes ──
+        if action == 'save_notes':
+            market.notes = request.POST.get('notes', '')
+            market.save()
+            messages.success(request, "Notes saved.")
+            return redirect('market_detail', market_id=market_id)
+
+        # ── Add expense ──
+        elif action == 'add_expense':
+            expense_form = MarketExpenseForm(request.POST)
+            if expense_form.is_valid():
+                expense = expense_form.save(commit=False)
+                expense.market = market
+                expense.save()
+                messages.success(request, "Expense added.")
+                return redirect('market_detail', market_id=market_id)
+
+        # ── Delete expense ──
+        elif action == 'delete_expense':
+            expense_id = request.POST.get('expense_id')
+            MarketExpense.objects.filter(id=expense_id, market=market).delete()
+            messages.success(request, "Expense removed.")
+            return redirect('market_detail', market_id=market_id)
+
+    # Stats
+    total_revenue = sales.aggregate(t=Sum('total'))['t'] or 0
+    total_tips = sales.aggregate(t=Sum('tip_amount'))['t'] or 0
+    total_discounts = sales.aggregate(t=Sum('discount_amount'))['t'] or 0
+    total_transactions = sales.count()
+    cash_total = sales.filter(payment_method='cash').aggregate(t=Sum('total'))['t'] or 0
+    card_total = sales.filter(payment_method='card').aggregate(t=Sum('total'))['t'] or 0
+    avg_sale = round(float(total_revenue) / total_transactions, 2) if total_transactions else 0
+    total_expenses = expenses.aggregate(t=Sum('amount'))['t'] or 0
+    total_profit = round(float(total_revenue) - float(total_expenses), 2)
+# Items sold
+    total_items_sold = SaleItem.objects.filter(
+        sale__market=market
+    ).aggregate(t=Sum('quantity'))['t'] or 0
+
+    # All items sold list
+    items_sold = SaleItem.objects.filter(
+        sale__market=market
+    ).values('product_name_snapshot', 'product_sku_snapshot', 'unit_price_snapshot').annotate(
+        total_qty=Sum('quantity'),
+        total_revenue=Sum('line_total')
+    ).order_by('-total_qty')
+
+    # Customer type breakdown
+    from django.db.models import Count
+    customer_breakdown = sales.values('customer_type').annotate(
+        count=Count('id'),
+        total_spent=Sum('total')
+    ).order_by('-count')
+
+    # Category stats
+    category_stats = Category.objects.filter(
+        user=request.user
+    ).annotate(
+        total_qty=Sum(
+            'products__sale_items__quantity',
+            filter=Q(products__sale_items__sale__market=market)
+        ),
+        total_revenue=Sum(
+            F('products__sale_items__line_total'),
+            filter=Q(products__sale_items__sale__market=market)
+        )
+    ).filter(total_qty__isnull=False).order_by('-total_qty')
+
+    # Per hour breakdown
+    from collections import defaultdict
+    hourly_stats = defaultdict(lambda: {'revenue': 0, 'items_sold': 0, 'sales': 0})
+    for sale in sales:
+        hour = sale.created_at.strftime('%I %p').lstrip('0')
+        hourly_stats[hour]['revenue'] += float(sale.total)
+        hourly_stats[hour]['sales'] += 1
+        for item in sale.items.all():
+            hourly_stats[hour]['items_sold'] += item.quantity
+    hourly_stats = dict(hourly_stats)
+
+    # Colour stats
+    colours = ['pink', 'purple', 'green', 'blue', 'yellow']
+    colour_stats = []
+    for colour in colours:
+        qty = SaleItem.objects.filter(
+            sale__market=market,
+            product_name_snapshot__icontains=colour
+        ).aggregate(t=Sum('quantity'))['t'] or 0
+        revenue = SaleItem.objects.filter(
+            sale__market=market,
+            product_name_snapshot__icontains=colour
+        ).aggregate(t=Sum('line_total'))['t'] or 0
+        colour_stats.append({
+            'colour': colour.title(),
+            'qty': qty,
+            'revenue': revenue,
+        })
+    colour_stats = sorted(colour_stats, key=lambda x: x['qty'], reverse=True)
+
+    # Chart 1 — Revenue by hour
+    from collections import defaultdict
+    revenue_by_hour = defaultdict(float)
+    for sale in sales:
+        hour = sale.created_at.strftime('%I %p').lstrip('0')
+        revenue_by_hour[hour] += float(sale.total)
+    revenue_hours = list(revenue_by_hour.keys())
+    revenue_values = list(revenue_by_hour.values())
+
+    # Chart 3 — Top products by quantity
+    top_products = SaleItem.objects.filter(
+        sale__market=market
+    ).values('product_name_snapshot').annotate(
+        total_qty=Sum('quantity')
+    ).order_by('-total_qty')[:10]
+    top_product_names = [p['product_name_snapshot'] for p in top_products]
+    top_product_qtys = [p['total_qty'] for p in top_products]
+
+    return render(request, 'inventory/market_detail.html', {
+        'market': market,
+        'sales': sales,
+        'expenses': expenses,
+        'expense_form': expense_form,
+        'total_revenue': total_revenue,
+        'total_tips': total_tips,
+        'total_discounts': total_discounts,
+        'total_transactions': total_transactions,
+        'cash_total': cash_total,
+        'card_total': card_total,
+        'avg_sale': avg_sale,
+        'total_expenses': total_expenses,
+        'total_profit': total_profit,
+        'revenue_hours': json.dumps(revenue_hours),
+        'revenue_values': json.dumps(revenue_values),
+        'cash_total_float': float(cash_total),
+        'card_total_float': float(card_total),
+        'top_product_names': json.dumps(top_product_names),
+        'top_product_qtys': json.dumps(top_product_qtys),
+        'total_items_sold': total_items_sold,
+        'items_sold': items_sold,
+        'customer_breakdown': customer_breakdown,
+        'category_stats': category_stats,
+        'hourly_stats': hourly_stats,
+        'colour_stats': colour_stats,
+    })
+@login_required
+def sale_edit(request, sale_id):
+    sale = get_object_or_404(Sale, id=sale_id, market__user=request.user)
+    items = sale.items.all()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+            # ===== Handle Delete =====
+        if action == 'delete':
+            # Restore stock for all items
+            for item in items:
+                if item.product:
+                    item.product.stock_quantity += item.quantity
+                    item.product.save()
+            sale.delete()
+            messages.success(request, f"Sale #{sale_id} deleted.")
+            return redirect('market_detail', market_id=sale.market.id)
+
+            # ===== Handle Remove Specific Item ====
+        elif action == 'remove_item':
+            if items.count() <= 1:
+                messages.error(request, "Cannot remove the last item. Delete the whole sale instead.")
+                return redirect('sale_edit', sale_id=sale_id)
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(SaleItem, id=item_id, sale=sale)
+            # Restore stock for this item
+            if item.product:
+                item.product.stock_quantity += item.quantity
+                item.product.save()
+            item.delete()
+            # Recalc subtotal and total after item removal
+            sale.subtotal = sum(i.line_total for i in sale.items.all())
+            sale.total = round(float(sale.subtotal) - float(sale.discount_amount) + float(sale.tip_amount), 2)
+            sale.save()
+            messages.success(request, "Item removed.")
+            return redirect('sale_edit', sale_id=sale_id)
+
+        # ===== Handle Form Save =====
+        elif action == 'save':
+            payment_method = request.POST.get('payment_method')
+            if payment_method not in ('cash', 'card'):
+                messages.error(request, "Invalid payment method.")
+                return redirect('sale_edit', sale_id=sale_id)
+
+            try:
+                discount_amount = abs(round(float(request.POST.get('discount_amount', 0) or 0), 2))
+                tip_amount = abs(round(float(request.POST.get('tip_amount', 0) or 0), 2))
+            except ValueError:
+                messages.error(request, "Invalid discount or tip amount.")
+                return redirect('sale_edit', sale_id=sale_id)
+
+            # Update quantities and adjust stock for the difference
+            for item in items:
+                qty_key = f'quantity_{item.id}'
+                try:
+                    new_qty = int(request.POST.get(qty_key, item.quantity))
+                    if new_qty < 1:
+                        new_qty = 1
+                    old_qty = item.quantity
+                    diff = new_qty - old_qty
+
+                    # diff > 0 means more sold, reduce stock
+                    # diff < 0 means less sold, restore stock
+                    if diff != 0 and item.product:
+                        item.product.stock_quantity = max(0, item.product.stock_quantity - diff)
+                        item.product.save()
+
+                    item.quantity = new_qty
+                    item.line_total = round(float(item.unit_price_snapshot) * new_qty, 2)
+                    item.save()
+                except ValueError:
+                    pass
+                customer_type = request.POST.get('customer_type')
+                if customer_type not in ('child', 'teen', 'young_adult', 'adult'):
+                    messages.error(request, "Invalid customer type.")
+                    return redirect('sale_edit', sale_id=sale_id)
+                sale.customer_type = customer_type
+            # Recalc totals
+            subtotal = round(sum(float(i.line_total) for i in sale.items.all()), 2)
+            total = round(subtotal - discount_amount + tip_amount, 2)
+
+            sale.payment_method = payment_method
+            sale.discount_amount = discount_amount
+            sale.tip_amount = tip_amount
+            sale.subtotal = subtotal
+            sale.total = total
+            sale.save()
+
+            messages.success(request, f"Sale #{sale_id} updated.")
+            return redirect('market_detail', market_id=sale.market.id)
+
+    return render(request, 'inventory/sale_edit.html', {
+        'sale': sale,
+        'items': items,
+    })
+@login_required
+def market_dashboard(request):
+    active_market = Market.objects.filter(user=request.user, is_active=True).first()
+    past_markets = Market.objects.filter(user=request.user, is_active=False).order_by('-ended_at').annotate(
+            total_revenue=Coalesce(
+                Sum('sales__total'),
+                Value(0),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            ),
+            transaction_count=Count('sales'),
+        )
+
+    # Best sellers toggle — 'quantity' or 'percentage'
+    best_seller_mode = request.GET.get('best_seller_mode', 'quantity')
+
+    if best_seller_mode == 'percentage':
+        # Get all snapshots for this user's markets
+        snapshots = StockSnapshot.objects.filter(
+            market__user=request.user
+        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
+            total_stock=Sum('stock_at_start')
+        )
+
+        # Get total qty sold per product across all markets
+        sold = SaleItem.objects.filter(
+            sale__market__user=request.user
+        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
+            total_sold=Sum('quantity')
+        )
+
+        # Build a dict of sku -> sold qty
+        sold_dict = {s['product_sku_snapshot']: s['total_sold'] for s in sold}
+
+        # Calculate percentage for each snapshot
+        best_sellers = []
+        for s in best_sellers_qs:
+            best_sellers.append({
+                'name': s['product_name_snapshot'],
+                'sku': s['product_sku_snapshot'],
+                'total_sold': s['total_sold'],
+            })        
+        for snap in snapshots:
+            sku = snap['product_sku_snapshot']
+            total_stock = snap['total_stock']
+            total_sold = sold_dict.get(sku, 0)
+            if total_stock > 0:
+                percentage = round((total_sold / total_stock) * 100, 1)
+            else:
+                percentage = 0
+            for s in best_sellers_qs:
+                        best_sellers.append({
+                            'name': s['product_name_snapshot'],
+                            'sku': s['product_sku_snapshot'],
+                            'total_sold': s['total_sold'],
+                        })
+        best_sellers = sorted(best_sellers, key=lambda x: x['percentage'], reverse=True)[:10]
+
+    else:
+        # Quantity mode — straightforward
+        best_sellers_qs = SaleItem.objects.filter(
+            sale__market__user=request.user
+        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
+            total_sold=Sum('quantity')
+        ).order_by('-total_sold')[:10]
+        best_sellers = list(best_sellers_qs)
+
+    # Colour stats across all markets
+    colours = ['pink', 'purple', 'green', 'blue', 'yellow']
+    colour_stats = []
+    for colour in colours:
+        qty = SaleItem.objects.filter(
+            sale__market__user=request.user,
+            product_name_snapshot__icontains=colour
+        ).aggregate(t=Sum('quantity'))['t'] or 0
+        revenue = SaleItem.objects.filter(
+            sale__market__user=request.user,
+            product_name_snapshot__icontains=colour
+        ).aggregate(t=Sum('line_total'))['t'] or 0
+        colour_stats.append({
+            'colour': colour.title(),
+            'qty': qty,
+            'revenue': revenue,
+        })
+    colour_stats = sorted(colour_stats, key=lambda x: x['qty'], reverse=True)
+
+    return render(request, 'inventory/market_dashboard.html', {
+        'active_market': active_market,
+        'past_markets': past_markets,
+        'best_sellers': best_sellers,
+        'best_seller_mode': best_seller_mode,
+        'colour_stats': colour_stats,
+    })
+# =============================
+#  Login Page View 
+# ===========================
+
 # Login not required
 def signup(request):
     if request.method == "POST":

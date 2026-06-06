@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mt-2">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="container py-4">
+    <h1 class="mb-4">Market Dashboard</h1>
+
+    <!-- Active Market -->
+    {% if active_market %}
+        <div class="alert alert-success d-flex justify-content-between align-items-center mb-4">
+            <span><strong>{{ active_market.name }}</strong> is currently active</span>
+            <a href="{% url 'market_detail' active_market.id %}" class="btn btn-sm btn-success">Go to Market</a>
+        </div>
+    {% else %}
+        <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-4">
+            <span>No active market</span>
+            <a href="{% url 'market_start' %}" class="btn btn-sm btn-primary">Start Market</a>
+        </div>
+    {% endif %}
+
+    <!-- Best Sellers -->
+    <div class="card p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Best Sellers — All Markets</h5>
+            <div class="d-flex gap-2">
+                <a href="?best_seller_mode=quantity"
+                    class="btn btn-sm {% if best_seller_mode == 'quantity' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    By Quantity
+                </a>
+                <a href="?best_seller_mode=percentage"
+                    class="btn btn-sm {% if best_seller_mode == 'percentage' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    By % Sold
+                </a>
+            </div>
+        </div>
+
+        {% if best_sellers %}
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>SKU</th>
+                        <th>Total Sold</th>
+                        {% if best_seller_mode == 'percentage' %}
+                            <th>Stock at Start</th>
+                            <th>% Sold</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in best_sellers %}
+                    <tr>
+                  <td>{{ item.name }}</td>
+<td>{{ item.sku }}</td>
+<td>{{ item.total_sold }}</td>
+                        {% if best_seller_mode == 'percentage' %}
+                            <td>{{ item.total_stock }}</td>
+                            <td>{{ item.percentage }}%</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted">No sales data yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Colour Stats -->
+    <div class="card p-3 mb-4">
+        <h5 class="mb-3">Sales by Colour — All Markets</h5>
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Colour</th>
+                    <th>Qty Sold</th>
+                    <th>Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in colour_stats %}
+                <tr>
+                    <td>{{ row.colour }}</td>
+                    <td>{{ row.qty }}</td>
+                    <td>${{ row.revenue }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Past Markets -->
+    <h2 class="mb-3">Past Markets</h2>
+    {% if past_markets %}
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Market</th>
+                    <th>Date</th>
+                    <th>Transactions</th>
+                    <th>Total Revenue</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for market in past_markets %}
+                <tr>
+                    <td>{{ market.name }}</td>
+                    <td>{{ market.ended_at|date:"N j, Y" }}</td>
+                    <td>{{ market.transaction_count }}</td>
+                    <td>${{ market.total_revenue|default:"0" }}</td>
+                    <td>
+                        <a href="{% url 'market_detail' market.id %}" class="btn btn-sm btn-outline-secondary">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-muted">No past markets yet.</p>
+    {% endif %}
+
+</div>
+{% endblock %}

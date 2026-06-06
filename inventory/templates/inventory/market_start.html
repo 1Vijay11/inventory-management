@@ -1,0 +1,21 @@
+    {% extends "base.html" %}
+    {% block title %}Vividly Hooked Inventory Management System Market Dashboard{% endblock %}
+
+    {% block content %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+            {{ message }}
+            <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <h1>Start A MArket</h1>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p}}
+            <button type = "submit"> Start a maket</button>
+        </form>
+    \   <a href="{% url 'market_dashboard' %}"> cacncel</a>
+        {% endblock %}

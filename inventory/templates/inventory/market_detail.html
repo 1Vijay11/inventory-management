@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+{% block title %}{{ market.name }} · Vividly Hooked{% endblock %}
+
+{% block content %}
+<div class="mm-page">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                {{ message }}
+                <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ════════════════  HERO HEADER  ════════════════ -->
+    <div class="market-hero">
+        <a href="{% url 'market_dashboard' %}" class="market-hero__eyebrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Dashboard Overview
+        </a>
+        <div class="market-hero__row">
+            <div>
+                <h1 class="market-hero__title">
+                    {{ market.name }}
+                    {% if market.is_active %}
+                        <span class="status-pill status-pill--active">Active</span>
+                    {% else %}
+                        <span class="status-pill status-pill--ended">Ended</span>
+                    {% endif %}
+                </h1>
+                <p class="market-hero__meta">
+                    Started {{ market.started_at|date:"N j, Y · g:i A" }}
+                    {% if market.ended_at %} — Ended {{ market.ended_at|date:"N j, Y · g:i A" }}{% endif %}
+                </p>
+            </div>
+            {% if market.is_active %}
+            <a href="{% url 'sale_new' %}" class="btn-mm btn-mm--primary btn-mm--lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Log New Sale
+            </a>
+            {% endif %}
+        </div>
+        <hr class="market-hero__divider">
+    </div>
+
+    <!-- ════════════════  KPI ROW  ════════════════ -->
+    <div class="kpi-grid">
+
+        <!-- Live revenue + hourly sparkline -->
+        <div class="kpi">
+            <div class="kpi__label">Live Revenue</div>
+            <div class="kpi__value">${{ total_revenue }}</div>
+            {% if sales %}<div class="kpi__spark"><canvas id="sparkRevenue"></canvas></div>{% endif %}
+        </div>
+
+        <!-- Profit + margin bar -->
+        <div class="kpi">
+            <div class="kpi__label">Profit</div>
+            <div class="kpi__value money-pos">${{ total_profit }}</div>
+            <div class="kpi__bar">
+                <div class="kpi__bar-label">{% widthratio total_profit total_revenue 100 %}% margin</div>
+                <div class="kpi__bar-track"><div class="kpi__bar-fill" style="--bar: {% widthratio total_profit total_revenue 100 %}%"></div></div>
+            </div>
+            <div class="kpi__sub">−${{ total_discounts }} discounts · −${{ total_expenses }} expenses</div>
+        </div>
+
+        <!-- Transactions + items chip -->
+        <div class="kpi">
+            <div class="kpi__label">Total Transactions</div>
+            <div class="kpi__value">{{ total_transactions }}</div>
+            <div class="kpi__trend">
+                <span class="kpi__trend-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 7-7M14 8h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <span class="kpi__trend-text">{{ total_items_sold }} item{{ total_items_sold|pluralize }} sold</span>
+            </div>
+        </div>
+
+        <!-- Avg sale + per-sale sparkline -->
+        <div class="kpi">
+            <div class="kpi__label">Avg Sale Value</div>
+            <div class="kpi__value">${{ avg_sale }}</div>
+            {% if sales %}<div class="kpi__spark"><canvas id="sparkAvg"></canvas></div>
+            {% else %}<div class="kpi__sub">per transaction</div>{% endif %}
+        </div>
+    </div>
+
+    <!-- ════════════════  PERFORMANCE · CUSTOMER MIX · WHAT'S SELLING  ════════════════ -->
+    <div class="perf-grid">
+
+        <!-- Performance (payments doughnut) -->
+        <div class="panel">
+            <div class="panel__head"><h3 class="panel__title">Performance</h3></div>
+            <div class="panel__body">
+                <div class="split-stat" style="flex-direction:column;">
+                    <div class="split-stat__chart">
+                        {% if sales %}<canvas id="paymentChart"></canvas>{% endif %}
+                        <div class="chart-center">
+                            <span class="chart-center__value">${{ total_revenue }}</span>
+                            <span class="chart-center__label">Total Vol</span>
+                        </div>
+                    </div>
+                    <div style="width:100%;">
+                        <div class="pay-stat">
+                            <div class="pay-stat__top"><span>Card Payments</span><span class="pay-stat__pct" id="payCardPct"></span></div>
+                            <div class="pay-stat__value">${{ card_total }}</div>
+                        </div>
+                        <div class="pay-stat">
+                            <div class="pay-stat__top"><span>Cash</span><span class="pay-stat__pct" id="payCashPct"></span></div>
+                            <div class="pay-stat__value">${{ cash_total }}</div>
+                        </div>
+                        <div class="pay-stat pay-stat--tips">
+                            <div class="pay-stat__top"><span>Tips</span><span>separate</span></div>
+                            <div class="pay-stat__value">+${{ total_tips }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Mix (audience spend bars) -->
+        <div class="panel">
+            <div class="panel__head"><h3 class="panel__title">Customer Mix</h3></div>
+            <div class="panel__body">
+                {% if customer_breakdown %}
+                    {% with max_count=customer_breakdown.0.count %}
+                    {% for row in customer_breakdown %}
+                    <div class="audience">
+                        <div class="audience__eyebrow">
+                            {% if forloop.first %}Primary Audience{% elif forloop.counter == 2 %}Secondary Audience{% else %}Audience{% endif %}
+                        </div>
+                        <div class="audience__row">
+                            <span class="audience__name">{{ row.customer_type|title }} ({{ row.count }})</span>
+                            <span class="audience__value">${{ row.total_spent }}</span>
+                        </div>
+                        <div class="audience__bar"><div class="audience__fill" style="--bar: {% widthratio row.count max_count 100 %}%"></div></div>
+                    </div>
+                    {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <div class="mm-empty">No customer data yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- What's Selling (ranked list, tall right column) -->
+        <div class="panel whats-selling">
+            <div class="panel__head">
+                <div>
+                    <h3 class="panel__title">What's Selling</h3>
+                    <p class="selling-sub">Top products by unit volume</p>
+                </div>
+                <!-- FUTURE FEATURE: dedicated analytics view -->
+                <button type="button" class="btn-mm btn-mm--ghost btn-mm--sm" disabled title="Coming soon">View Analytics</button>
+            </div>
+            <div class="panel__body">
+                {% if items_sold %}
+                    {% with max_qty=items_sold.0.total_qty %}
+                    <div class="selling-list">
+                        {% for item in items_sold|slice:":10" %}
+                        <div class="selling-row">
+                            <div class="selling-rank">{{ forloop.counter }}</div>
+                            <div class="selling-main">
+                                <div class="selling-top">
+                                    <span class="selling-name">{{ item.product_name_snapshot }}</span>
+                                    <span class="selling-sold">{{ item.total_qty }} sold</span>
+                                </div>
+                                <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <div class="mm-empty">No products sold yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════  HOURLY ACTIVITY  ════════════════ -->
+    {% if sales %}
+    <div class="panel">
+        <div class="panel__head">
+            <h3 class="panel__title">Activity by Hour</h3>
+            <div class="legend-inline">
+                <span><i class="dot" style="background:var(--chart-1)"></i> Revenue</span>
+                <span><i class="dot" style="background:var(--chart-4)"></i> Items sold</span>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="chart-box"><canvas id="hourlyChart"></canvas></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ════════════════  CATEGORY + COLOUR  ════════════════ -->
+    <div class="dash-grid">
+
+        <div class="panel gc-6">
+            <div class="panel__head"><h3 class="panel__title">Sales by Category</h3></div>
+            <div class="panel__body">
+                {% if category_stats %}
+                    {% with max_cat=category_stats.0.total_qty %}
+                    {% for cat in category_stats %}
+                    <div class="cat-row">
+                        <span class="cat-label">{{ cat.name }}</span>
+                        <span class="cat-bar"><span class="cat-fill" style="--bar: {% widthratio cat.total_qty max_cat 100 %}%"></span></span>
+                        <span class="cat-value">{{ cat.total_qty }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <div class="mm-empty">No category data yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel gc-6">
+            <div class="panel__head"><h3 class="panel__title">Colour Distribution</h3></div>
+            <div class="panel__body">
+                <div class="colour-grid">
+                    {% for row in colour_stats %}
+                    <div class="colour-pill">
+                        <span class="colour-pill__dot" style="background:{% if row.colour|lower == 'pink' %}#e08ba0{% elif row.colour|lower == 'purple' %}#b08aa8{% elif row.colour|lower == 'green' %}#84b39a{% elif row.colour|lower == 'blue' %}#8aa6c0{% elif row.colour|lower == 'yellow' %}#e6c06a{% else %}var(--accent){% endif %}"></span>
+                        <span class="colour-pill__name">{{ row.colour }}</span>
+                        <span class="colour-pill__count">{{ row.qty }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════  RECORDS (toggle: Inventory Sold / Sale History)  ════════════════ -->
+    <div class="panel">
+        <div class="rtabs-head">
+            <div class="rtabs-nav">
+                <button type="button" class="rtab is-active" data-rtab="inventory">Inventory Sold</button>
+                <button type="button" class="rtab" data-rtab="history">Sale History</button>
+            </div>
+            <div class="rtabs-search toolbar">
+                <span class="toolbar__search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <input type="text" id="recordsSearch" placeholder="Search records…">
+                </span>
+            </div>
+        </div>
+
+        <!-- Inventory Sold -->
+        <div class="rtab-panel is-active" data-rtab-panel="inventory">
+            <div class="panel__body--flush">
+                {% if items_sold %}
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Product Name</th><th>SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Revenue</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items_sold %}
+                            <tr data-search="{{ item.product_name_snapshot }} {{ item.product_sku_snapshot }}">
+                                <td>{{ item.product_name_snapshot }}</td>
+                                <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
+                                <td class="num">${{ item.unit_price_snapshot }}</td>
+                                <td class="num">{{ item.total_qty }}</td>
+                                <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ item.total_revenue }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}<div class="mm-empty">No items sold yet.</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- Sale History -->
+        <div class="rtab-panel" data-rtab-panel="history">
+            <div class="panel__body--flush">
+                {% if sales %}
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Time</th><th>Payment</th><th class="num">Subtotal</th><th class="num">Discount</th><th class="num">Tip</th><th class="num">Total</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr data-search="#{{ sale.id }} {{ sale.get_payment_method_display }}">
+                                <td>{{ sale.created_at|date:"g:i A" }}</td>
+                                <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
+                                <td class="num">${{ sale.subtotal }}</td>
+                                <td class="num">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num"><strong>${{ sale.total }}</strong></td>
+                                <td class="num">
+                                    <button class="btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
+                                    {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="sale-items-{{ sale.id }}" data-detail>
+                                <td class="sale-detail-cell" colspan="8">
+                                    <div class="sale-detail-inner">
+                                        <table class="data-table">
+                                            <thead><tr><th>Product</th><th>SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Line Total</th></tr></thead>
+                                            <tbody>
+                                                {% for item in sale.items.all %}
+                                                <tr>
+                                                    <td>{{ item.product_name_snapshot }}</td>
+                                                    <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
+                                                    <td class="num">${{ item.unit_price_snapshot }}</td>
+                                                    <td class="num">{{ item.quantity }}</td>
+                                                    <td class="num">${{ item.line_total }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}<div class="mm-empty">No sales recorded yet.</div>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════  NOTES + EXPENSES  ════════════════ -->
+    <div class="dash-grid">
+
+        <!-- Market Notes -->
+        <div class="panel gc-6">
+            <div class="panel__head">
+                <h3 class="panel__title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h11l4 4v14a0 0 0 0 1 0 0H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 12h8M8 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    Market Notes
+                </h3>
+            </div>
+            <div class="panel__body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mm-field" style="margin-bottom:0.85rem;">
+                        <textarea name="notes" class="mm-input" rows="4" placeholder="Log key takeaways, traffic patterns, or weather conditions…">{{ market.notes|default:'' }}</textarea>
+                    </div>
+                    <button type="submit" name="action" value="save_notes" class="btn-mm btn-mm--dark">Save Observations</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Operational Expenses -->
+        <div class="panel gc-6">
+            <div class="panel__head">
+                <h3 class="panel__title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M7 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    Operational Expenses
+                </h3>
+                <span class="expense-total">Total Outflow<strong>${{ total_expenses }}</strong></span>
+            </div>
+            <div class="panel__body">
+                {% for expense in expenses %}
+                <div class="expense-item">
+                    <span class="expense-item__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+                    <span class="expense-item__main">
+                        <span class="expense-item__name">{{ expense.description }}</span>
+                        <span class="expense-item__sub">Operational Cost</span>
+                    </span>
+                    <span class="expense-item__amt">${{ expense.amount }}</span>
+                    <form method="POST" style="margin:0;">
+                        {% csrf_token %}
+                        <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                        <button type="submit" name="action" value="delete_expense" class="btn-mm btn-mm--danger btn-mm--sm"
+                            onclick="return confirm('Remove this expense?')">Remove</button>
+                    </form>
+                </div>
+                {% endfor %}
+
+                <form method="POST" style="margin-top:0.85rem;">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="mm-field"><span class="mm-field__label">Description</span>{{ expense_form.description }}</div>
+                        <div class="mm-field" style="max-width:160px;"><span class="mm-field__label">Amount ($)</span>{{ expense_form.amount }}</div>
+                        <button type="submit" name="action" value="add_expense" class="btn-round" title="Add expense">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                    {% if expense_form.errors %}<p class="form-error" style="margin-top:0.5rem;">{{ expense_form.errors }}</p>{% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════  FINALIZE  ════════════════ -->
+    {% if market.is_active %}
+    <div class="finalize">
+        <div class="finalize__left">
+            <span class="finalize__ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+            <div>
+                <p class="finalize__title">Finalize Market Session</p>
+                <p class="finalize__text">This will lock all transaction records and archive the session data for reporting.</p>
+            </div>
+        </div>
+        <a href="{% url 'market_end' market.id %}" class="btn-mm btn-mm--solid-danger btn-mm--lg">End Market Session</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+
+{% comment %}
+  ── DATA ISLANDS ──────────────────────────────────────────────────────────
+  Django renders these as inert JSON; the JS below reads them with JSON.parse.
+  No template tags appear inside the executable <script>.
+{% endcomment %}
+{% if sales %}
+<script id="mm-hour-labels"  type="application/json">[{% for hour, stats in hourly_stats.items %}"{{ hour|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}]</script>
+<script id="mm-hour-revenue" type="application/json">[{% for hour, stats in hourly_stats.items %}{{ stats.revenue|floatformat:2 }}{% if not forloop.last %}, {% endif %}{% endfor %}]</script>
+<script id="mm-hour-items"   type="application/json">[{% for hour, stats in hourly_stats.items %}{{ stats.items_sold }}{% if not forloop.last %}, {% endif %}{% endfor %}]</script>
+<script id="mm-payment"      type="application/json">[{{ cash_total_float }}, {{ card_total_float }}]</script>
+<script id="mm-sale-totals"  type="application/json">[{% for s in sales reversed %}{{ s.total }}{% if not forloop.last %}, {% endif %}{% endfor %}]</script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ── Pure JavaScript: no Django tags. Reads the data islands above. ── -->
+<script>
+(function () {
+    "use strict";
+
+    function readJSON(id) {
+        var el = document.getElementById(id);
+        if (!el) return null;
+        try { return JSON.parse(el.textContent); } catch (e) { return null; }
+    }
+
+    var cssVars = getComputedStyle(document.documentElement);
+    var C = function (n) { return cssVars.getPropertyValue(n).trim(); };
+    var TICK = C('--chart-tick'), GRID = C('--chart-grid'), ACCENT = C('--chart-1'),
+        GOLD = C('--chart-4'), SURFACE = C('--surface-page');
+
+    if (window.Chart) {
+        Chart.defaults.font.family = "'Poppins', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = TICK;
+        Chart.defaults.plugins.legend.display = false;
+        Chart.defaults.plugins.tooltip.backgroundColor = C('--text-dark');
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    }
+
+    function gradient(ctx, area, from, to) {
+        var g = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+        g.addColorStop(0, from); g.addColorStop(1, to);
+        return g;
+    }
+    function mount(id, cfg) { var el = document.getElementById(id); return (el && window.Chart) ? new Chart(el, cfg) : null; }
+
+    var bare = { x: { display: false }, y: { display: false } };
+
+    // ── KPI sparkline: hourly revenue (bars) ──
+    var hourRev = readJSON('mm-hour-revenue');
+    if (hourRev) mount('sparkRevenue', {
+        type: 'bar',
+        data: { labels: hourRev.map(function (_, i) { return i; }), datasets: [{ data: hourRev,
+            backgroundColor: 'rgba(232,146,124,0.55)', borderRadius: 3, maxBarThickness: 14 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: bare, plugins: { tooltip: { enabled: false } } }
+    });
+
+    // ── KPI sparkline: per-sale totals (line) ──
+    var saleTotals = readJSON('mm-sale-totals');
+    if (saleTotals) mount('sparkAvg', {
+        type: 'line',
+        data: { labels: saleTotals.map(function (_, i) { return i; }), datasets: [{ data: saleTotals,
+            borderColor: ACCENT, borderWidth: 2, tension: 0.4, pointRadius: 0,
+            fill: true, backgroundColor: 'rgba(232,146,124,0.12)' }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: bare, plugins: { tooltip: { enabled: false } } }
+    });
+
+    // ── Performance doughnut + legend % ──
+    var pay = readJSON('mm-payment');
+    if (pay) {
+        var total = (pay[0] || 0) + (pay[1] || 0);
+        mount('paymentChart', {
+            type: 'doughnut',
+            data: { labels: ['Cash', 'Card'], datasets: [{ data: pay,
+                backgroundColor: [C('--chart-2'), C('--chart-3')], borderColor: SURFACE, borderWidth: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '72%' }
+        });
+        var pct = function (n) { return total ? Math.round((n / total) * 100) + '%' : '—'; };
+        var card = document.getElementById('payCardPct'), cash = document.getElementById('payCashPct');
+        if (card) card.textContent = pct(pay[1]);
+        if (cash) cash.textContent = pct(pay[0]);
+    }
+
+    // ── Hourly activity: revenue line + items bars (dual axis) ──
+    var hLabels = readJSON('mm-hour-labels'), hItems = readJSON('mm-hour-items');
+    if (hLabels && hourRev) mount('hourlyChart', {
+        data: {
+            labels: hLabels,
+            datasets: [
+                { type: 'line', label: 'Revenue', data: hourRev, yAxisID: 'y', order: 0,
+                  borderColor: ACCENT, backgroundColor: 'rgba(232,146,124,0.14)', fill: true, tension: 0.35,
+                  borderWidth: 2.5, pointBackgroundColor: ACCENT, pointBorderColor: SURFACE, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+                { type: 'bar', label: 'Items sold', data: hItems, yAxisID: 'y1', order: 1,
+                  borderRadius: 6, maxBarThickness: 26,
+                  backgroundColor: function (c) { var a = c.chart.chartArea; return a ? gradient(c.chart.ctx, a, 'rgba(224,177,94,0.30)', 'rgba(224,177,94,0.80)') : 'rgba(224,177,94,0.6)'; } }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: TICK }, border: { display: false } },
+                y:  { position: 'left', beginAtZero: true, grid: { color: GRID }, border: { display: false }, ticks: { color: TICK, callback: function (v) { return '$' + v; } } },
+                y1: { position: 'right', beginAtZero: true, grid: { display: false }, border: { display: false }, ticks: { color: TICK, precision: 0 } }
+            }
+        }
+    });
+
+    // ── Records: tab toggle ──
+    var tabs = document.querySelectorAll('.rtab');
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var key = tab.getAttribute('data-rtab');
+            tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+            document.querySelectorAll('[data-rtab-panel]').forEach(function (p) {
+                p.classList.toggle('is-active', p.getAttribute('data-rtab-panel') === key);
+            });
+            var s = document.getElementById('recordsSearch');
+            if (s) { s.value = ''; filterRecords(''); }
+        });
+    });
+
+    // ── Records: live search over the active panel ──
+    function filterRecords(q) {
+        q = (q || '').trim().toLowerCase();
+        var active = document.querySelector('.rtab-panel.is-active');
+        if (!active) return;
+        active.querySelectorAll('[data-search]').forEach(function (row) {
+            var show = !q || row.getAttribute('data-search').toLowerCase().indexOf(q) !== -1;
+            row.style.display = show ? '' : 'none';
+            var next = row.nextElementSibling;
+            if (next && next.hasAttribute('data-detail') && !show) next.style.display = 'none';
+        });
+    }
+    var searchEl = document.getElementById('recordsSearch');
+    if (searchEl) searchEl.addEventListener('input', function (e) { filterRecords(e.target.value); });
+
+    // ── Trigger bar-fill animations after first paint ──
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () { document.querySelector('.mm-page').classList.add('is-loaded'); });
+    });
+
+    // ── Auto-dismiss alerts ──
+    document.querySelectorAll('.auto-dismiss').forEach(function (alert) {
+        var keep = false;
+        alert.addEventListener('click', function (e) { if (!e.target.closest('.alert__close')) keep = true; });
+        setTimeout(function () {
+            if (keep) return;
+            alert.classList.remove('show'); alert.classList.add('fade');
+            setTimeout(function () { alert.remove(); }, 500);
+        }, 5000);
+    });
+})();
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Product, Category, SubCategory, PatternFile
+from .models import Product, Category, SubCategory, PatternFile, Market,Sale,MarketExpense
 from django.db.models import Max # this is used when i query the max sku so i can sugest the next best sku
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
@@ -158,4 +158,34 @@ class PatternFileForm(forms.ModelForm):
         fields = ['name', 'file']
         widgets = {
             'name': forms.TextInput(attrs={'placeholder': 'e.g. Main pattern...'}),
+        }
+
+# =================================
+# Phase 2 Market Mode
+#======================================
+class MarketForm(forms.ModelForm):
+    class Meta:
+        model = Market
+        fields = ['name', 'notes']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Location, event details...'}),
+        }
+
+class SaleForm(forms.ModelForm):
+    class Meta:
+        model = Sale
+        fields = ['payment_method', 'customer_type', 'discount_amount', 'tip_amount']
+        widgets = {
+            'payment_method': forms.Select(),
+            'customer_type': forms.Select(),
+            'discount_amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'value': '0'}),
+            'tip_amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'value': '0'}),
+        }
+
+class MarketExpenseForm(forms.ModelForm):
+    class Meta:
+        model = MarketExpense
+        fields = ['description', 'amount']
+        widgets = {
+            'amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
         }

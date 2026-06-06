@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+{% block title %}New Sale · {{ active_market.name }} · Vividly Hooked{% endblock %}
+
+{% block content %}
+<div class="mm-page">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                {{ message }}
+                <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ════════════════  HERO HEADER  ════════════════ -->
+    <div class="market-hero">
+        <a href="{% url 'market_detail' active_market.id %}" class="market-hero__eyebrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ active_market.name }}
+        </a>
+        <div class="market-hero__row">
+            <div>
+                <h1 class="market-hero__title">Log New Sale</h1>
+                <p class="market-hero__meta">Search for products, build your cart, then complete the sale.</p>
+            </div>
+        </div>
+        <hr class="market-hero__divider">
+    </div>
+
+    <!-- ════════════════  TWO-COLUMN LAYOUT  ════════════════ -->
+    <div class="sn-layout">
+
+        <!-- ── LEFT: Search + Cart ── -->
+        <div class="sn-left">
+
+            <!-- Product Search Panel -->
+            <div class="panel">
+                <div class="panel__head">
+                    <h3 class="panel__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                            <path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Find Products
+                    </h3>
+                </div>
+                <div class="panel__body">
+                    <form method="GET" class="sn-search-form">
+                        <div class="toolbar">
+                            <div class="toolbar__search" style="flex:1;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <input
+                                    type="text"
+                                    name="search"
+                                    value="{{ search }}"
+                                    placeholder="Search by name or SKU…"
+                                    autocomplete="off"
+                                    style="width:100%;"
+                                >
+                            </div>
+                            <button type="submit" class="btn-mm btn-mm--primary">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Search
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Search Results -->
+                    {% if search_results %}
+                        <div class="sn-results">
+                            {% for product in search_results %}
+                            <div class="sn-product-row">
+                                <div class="sn-product-info">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="sn-product-thumb">
+                                    {% else %}
+                                        <div class="sn-product-thumb sn-product-thumb--placeholder">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+                                                <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                            </svg>
+                                        </div>
+                                    {% endif %}
+                                    <div class="sn-product-text">
+                                        <span class="sn-product-name">{{ product.name }}</span>
+                                        <span class="sn-product-meta">SKU {{ product.sku }} &middot; {{ product.stock_quantity }} in stock</span>
+                                    </div>
+                                </div>
+                                <div class="sn-product-right">
+                                    <span class="sn-product-price">${{ product.price }}</span>
+                                    {% if product.stock_quantity > 0 %}
+                                        <form method="POST" action="{% url 'sale_add_item' product.sku %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="search" value="{{ search }}">
+                                            <button type="submit" class="btn-mm btn-mm--primary btn-mm--sm">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                </svg>
+                                                Add
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="sn-out-of-stock">Out of stock</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% elif search %}
+                        <div class="mm-empty">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="color: var(--text-faint); margin-bottom: 0.5rem;">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                            <p>No products found for "{{ search }}".</p>
+                        </div>
+                    {% else %}
+                        <div class="mm-empty" style="padding: 1.25rem 1rem;">
+                            <p style="margin:0;">Type a product name or SKU above to search.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Cart Panel -->
+            <div class="panel">
+                <div class="panel__head">
+                    <h3 class="panel__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/>
+                            <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Cart
+                    </h3>
+                    {% if cart_items %}
+                        <span class="sn-cart-count">{{ cart_items|length }} item{{ cart_items|length|pluralize }}</span>
+                    {% endif %}
+                </div>
+                <div class="panel__body--flush">
+                    {% if cart_items %}
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th class="num">Unit Price</th>
+                                        <th class="num">Qty</th>
+                                        <th class="num">Line Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart_items %}
+                                    <tr>
+                                        <td>
+                                            <span class="sn-cart-name">{{ item.product.name }}</span>
+                                            <span class="sn-cart-sku">SKU {{ item.product.sku }}</span>
+                                        </td>
+                                        <td class="num">${{ item.product.price }}</td>
+                                        <td class="num">{{ item.quantity }}</td>
+                                        <td class="num" style="font-weight:700; color: var(--accent-dark);">${{ item.line_total }}</td>
+                                        <td class="num">
+                                            <form method="POST" action="{% url 'sale_remove_item' item.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="sn-remove-btn" title="Remove item">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Subtotal row -->
+                        <div class="sn-subtotal-row">
+                            <span class="sn-subtotal-label">Subtotal</span>
+                            <span class="sn-subtotal-value">${{ cart.subtotal }}</span>
+                        </div>
+
+                    {% else %}
+                        <div class="mm-empty">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style="color: var(--text-faint); margin-bottom: 0.65rem;">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="1.5"/>
+                            </svg>
+                            <p>Your cart is empty.<br>Search for products above to add them.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div><!-- /sn-left -->
+
+        <!-- ── RIGHT: Complete Sale ── -->
+        <div class="sn-right">
+            <div class="panel sn-checkout{% if not cart_items %} sn-checkout--disabled{% endif %}">
+                <div class="panel__head">
+                    <h3 class="panel__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Complete Sale
+                    </h3>
+                </div>
+
+                {% if cart_items %}
+                <form method="POST" action="{% url 'sale_complete' %}">
+                    {% csrf_token %}
+                    <div class="panel__body">
+
+                        <!-- Payment Method -->
+                        <div class="sn-field-group">
+                            <p class="sn-section-label">Payment</p>
+                            <div class="sn-pay-toggle">
+                                <label class="sn-pay-option">
+                                    <input type="radio" name="{{ sale_form.payment_method.html_name }}" value="cash" id="pay_cash"
+                                        {% if sale_form.payment_method.value == 'cash' or not sale_form.payment_method.value %}checked{% endif %}>
+                                    <span class="sn-pay-btn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        Cash
+                                    </span>
+                                </label>
+                                <label class="sn-pay-option">
+                                    <input type="radio" name="{{ sale_form.payment_method.html_name }}" value="card" id="pay_card"
+                                        {% if sale_form.payment_method.value == 'card' %}checked{% endif %}>
+                                    <span class="sn-pay-btn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M2 10h20" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        Card
+                                    </span>
+                                </label>
+                            </div>
+                            {% if sale_form.payment_method.errors %}
+                                <p class="sn-field-error">{{ sale_form.payment_method.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Customer Type -->
+                        <div class="sn-field-group">
+                            <p class="sn-section-label">Customer Type</p>
+                            <div class="mm-field">
+                                {{ sale_form.customer_type }}
+                            </div>
+                            {% if sale_form.customer_type.errors %}
+                                <p class="sn-field-error">{{ sale_form.customer_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Discount + Tip -->
+                        <div class="sn-field-group">
+                            <p class="sn-section-label">Adjustments</p>
+                            <div class="form-row">
+                                <div class="mm-field">
+                                    <label class="mm-field__label">Discount ($)</label>
+                                    {{ sale_form.discount_amount }}
+                                    {% if sale_form.discount_amount.errors %}
+                                        <p class="sn-field-error">{{ sale_form.discount_amount.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="mm-field">
+                                    <label class="mm-field__label">Tip ($)</label>
+                                    {{ sale_form.tip_amount }}
+                                    {% if sale_form.tip_amount.errors %}
+                                        <p class="sn-field-error">{{ sale_form.tip_amount.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Summary -->
+                        <div class="sn-summary">
+                            <div class="sn-summary__row">
+                                <span>Subtotal</span>
+                                <span id="sn-sum-subtotal">${{ cart.subtotal }}</span>
+                            </div>
+                            <div class="sn-summary__row sn-summary__row--discount" id="sn-discount-row" style="display:none;">
+                                <span>Discount</span>
+                                <span id="sn-sum-discount" class="money-neg">−$0.00</span>
+                            </div>
+                            <div class="sn-summary__row sn-summary__row--tip" id="sn-tip-row" style="display:none;">
+                                <span>Tip</span>
+                                <span id="sn-sum-tip" class="money-pos">+$0.00</span>
+                            </div>
+                            <div class="sn-summary__row sn-summary__total">
+                                <span>Total</span>
+                                <span id="sn-sum-total">${{ cart.subtotal }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <button type="submit" class="btn-mm btn-mm--primary btn-mm--lg sn-submit-btn">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                                <path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            </svg>
+                            Complete Sale
+                        </button>
+
+                    </div>
+                </form>
+                {% else %}
+                    <div class="mm-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style="color: var(--text-faint); margin-bottom: 0.65rem;">
+                            <path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        <p>Add products to your cart<br>to complete a sale.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div><!-- /sn-right -->
+
+    </div><!-- /sn-layout -->
+
+</div><!-- /mm-page -->
+
+<!-- ── Inline summary recalculation (no-framework, minimal JS) ── -->
+{% if cart_items %}
+<script>
+(function () {
+    "use strict";
+    var subtotal = parseFloat("{{ cart.subtotal }}") || 0;
+
+    var discountInput = document.querySelector('[name="{{ sale_form.discount_amount.html_name }}"]');
+    var tipInput      = document.querySelector('[name="{{ sale_form.tip_amount.html_name }}"]');
+
+    var sumDiscount  = document.getElementById('sn-sum-discount');
+    var sumTip       = document.getElementById('sn-sum-tip');
+    var sumTotal     = document.getElementById('sn-sum-total');
+    var discountRow  = document.getElementById('sn-discount-row');
+    var tipRow       = document.getElementById('sn-tip-row');
+
+    function fmt(n) { return '$' + n.toFixed(2); }
+
+    function recalc() {
+        var disc = Math.max(0, parseFloat(discountInput.value) || 0);
+        var tip  = Math.max(0, parseFloat(tipInput.value)      || 0);
+        var total = Math.max(0, subtotal - disc + tip);
+
+        if (sumDiscount) sumDiscount.textContent = '−' + fmt(disc);
+        if (sumTip)      sumTip.textContent      = '+' + fmt(tip);
+        if (sumTotal)    sumTotal.textContent     = fmt(total);
+
+        if (discountRow) discountRow.style.display = disc > 0 ? '' : 'none';
+        if (tipRow)      tipRow.style.display      = tip  > 0 ? '' : 'none';
+    }
+
+    if (discountInput) discountInput.addEventListener('input', recalc);
+    if (tipInput)      tipInput.addEventListener('input', recalc);
+
+    recalc();
+
+    // Auto-dismiss alerts
+    document.querySelectorAll('.auto-dismiss').forEach(function (alert) {
+        var keep = false;
+        alert.addEventListener('click', function (e) { if (!e.target.closest('.alert__close')) keep = true; });
+        setTimeout(function () {
+            if (keep) return;
+            alert.classList.remove('show'); alert.classList.add('fade');
+            setTimeout(function () { alert.remove(); }, 500);
+        }, 5000);
+    });
+})();
+</script>
+{% endif %}
+
+{% endblock %}

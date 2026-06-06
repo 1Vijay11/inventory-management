@@ -124,3 +124,113 @@ class PatternFile(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# ===============================================================
+#           Phase 2 - Market Mode Backend Models
+# ===============================================================
+class Market(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({'Active' if self.is_active else 'Ended'})"
+
+    class Meta:
+        ordering = ['-started_at']
+
+
+class Sale(models.Model):
+    PAYMENT_CHOICES = [
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+    ]
+    CUSTOMER_CHOICES = [
+        ('child', 'Child'),
+        ('teen', 'Teen'),
+        ('young_adult', 'Young Adult'),
+        ('adult', 'Adult'),
+    ]
+    market = models.ForeignKey(Market, on_delete=models.CASCADE, related_name='sales')
+    created_at = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
+    subtotal = models.DecimalField(max_digits=8, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    tip_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=8, decimal_places=2)
+    customer_type = models.CharField(max_length=15, choices=CUSTOMER_CHOICES, default='adult')
+    def __str__(self):
+        return f"Sale #{self.id} — {self.market.name} (${self.total})"
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class SaleItem(models.Model):
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL, related_name='sale_items')
+
+    # Historical snapshots — these never change after the sale is recorded
+    product_name_snapshot = models.CharField(max_length=255)
+    product_sku_snapshot = models.IntegerField()
+    unit_price_snapshot = models.DecimalField(max_digits=6, decimal_places=2)
+
+    quantity = models.IntegerField()
+    line_total = models.DecimalField(max_digits=8, decimal_places=2)  # stored, not computed
+
+    def __str__(self):
+        return f"{self.product_name_snapshot} x{self.quantity} @ ${self.unit_price_snapshot}"
+    
+class Cart(models.Model):
+    market = models.ForeignKey(Market, on_delete=models.CASCADE, related_name='cart')
+    user = models.ForeignKey( User, on_delete=models.CASCADE )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart For {self.market.name}"
+    
+    @property
+    def subtotal(self):
+        return sum(item.line_total for item in self.cart_items.all())
+    
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)
+
+    @property
+    def line_total(self):
+        return self.product.price * self.quantity
+    
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity}"
+class StockSnapshot(models.Model):
+    # must use a stocksnap shot at the start of the market so we can cross reference stock sold to intial stock - display populat items sold by percentage
+    market = models.ForeignKey(Market, on_delete=models.CASCADE, related_name='stock_snapshots')
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
+    product_name_snapshot = models.CharField(max_length=255)
+    product_sku_snapshot = models.IntegerField()
+    stock_at_start = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.product_name_snapshot} — {self.stock_at_start} at start"
+
+    class Meta:
+        unique_together = ('market', 'product')
+
+
+class MarketExpense(models.Model):
+    market = models.ForeignKey(Market, on_delete=models.CASCADE, related_name='expenses')
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.description} — ${self.amount}"
+
+    class Meta:
+        ordering = ['created_at']
