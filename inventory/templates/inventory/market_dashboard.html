@@ -1,129 +1,425 @@
 {% extends "base.html" %}
+{% block title %}Market Dashboard · Vividly Hooked{% endblock %}
+
 {% block content %}
+<div class="mm-page">
 
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} mt-2">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-
-<div class="container py-4">
-    <h1 class="mb-4">Market Dashboard</h1>
-
-    <!-- Active Market -->
-    {% if active_market %}
-        <div class="alert alert-success d-flex justify-content-between align-items-center mb-4">
-            <span><strong>{{ active_market.name }}</strong> is currently active</span>
-            <a href="{% url 'market_detail' active_market.id %}" class="btn btn-sm btn-success">Go to Market</a>
-        </div>
-    {% else %}
-        <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-4">
-            <span>No active market</span>
-            <a href="{% url 'market_start' %}" class="btn btn-sm btn-primary">Start Market</a>
-        </div>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                {{ message }}
+                <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+            </div>
+        {% endfor %}
     {% endif %}
 
-    <!-- Best Sellers -->
-    <div class="card p-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Best Sellers — All Markets</h5>
-            <div class="d-flex gap-2">
-                <a href="?best_seller_mode=quantity"
-                    class="btn btn-sm {% if best_seller_mode == 'quantity' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    By Quantity
+    <!-- ════════════════  HERO HEADER  ════════════════ -->
+    <div class="market-hero">
+        <div class="market-hero__row">
+            <div>
+                <h1 class="market-hero__title">Market Dashboard</h1>
+                <p class="market-hero__meta">
+                    {% if market_count %}
+                        {{ market_count }} completed market{{ market_count|pluralize }} · all-time performance
+                    {% else %}
+                        No completed markets yet
+                    {% endif %}
+                </p>
+            </div>
+            {% if active_market %}
+                <a href="{% url 'market_detail' active_market.id %}" class="btn-mm btn-mm--primary btn-mm--lg md-live-btn">
+                    <span class="md-live-dot"></span>
+                    {{ active_market.name }}
                 </a>
-                <a href="?best_seller_mode=percentage"
-                    class="btn btn-sm {% if best_seller_mode == 'percentage' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    By % Sold
+            {% else %}
+                <a href="{% url 'market_start' %}" class="btn-mm btn-mm--ghost btn-mm--lg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Start Market
                 </a>
+            {% endif %}
+        </div>
+        <hr class="market-hero__divider">
+    </div>
+
+    {% if market_count %}
+
+    <!-- ════════════════  KPI ROW — average per market  ════════════════ -->
+    <div class="kpi-grid">
+
+        <div class="kpi">
+            <div class="kpi__label">Avg Market Revenue</div>
+            <div class="kpi__value">${{ avg_market_revenue }}</div>
+            <div class="kpi__bar" style="margin-top:1.1rem;">
+                <div class="kpi__bar-label">All-time total: ${{ total_revenue_all }}</div>
+                <div class="kpi__bar-track"><div class="kpi__bar-fill" style="--bar:100%"></div></div>
             </div>
         </div>
 
-        {% if best_sellers %}
-            <table class="table table-sm table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Product</th>
-                        <th>SKU</th>
-                        <th>Total Sold</th>
-                        {% if best_seller_mode == 'percentage' %}
-                            <th>Stock at Start</th>
-                            <th>% Sold</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in best_sellers %}
-                    <tr>
-                  <td>{{ item.name }}</td>
-<td>{{ item.sku }}</td>
-<td>{{ item.total_sold }}</td>
-                        {% if best_seller_mode == 'percentage' %}
-                            <td>{{ item.total_stock }}</td>
-                            <td>{{ item.percentage }}%</td>
-                        {% endif %}
-                    </tr>
+        <div class="kpi">
+            <div class="kpi__label">Avg Market Profit</div>
+            <div class="kpi__value money-pos">${{ avg_market_profit }}</div>
+            <div class="kpi__sub">All-time: ${{ total_profit_all }}</div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi__label">Avg Transactions</div>
+            <div class="kpi__value">{{ avg_market_transactions }}</div>
+            <div class="kpi__trend">
+                <span class="kpi__trend-ic">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 7-7M14 8h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="kpi__trend-text">per market</span>
+            </div>
+        </div>
+
+        <div class="kpi">
+            <div class="kpi__label">Avg Sale Value</div>
+            <div class="kpi__value">${{ avg_sale_value }}</div>
+            <div class="kpi__sub">per transaction</div>
+        </div>
+
+    </div>
+
+    <!-- ════════════════  AVERAGE HOURLY ACTIVITY  ════════════════ -->
+    <div class="panel">
+        <div class="panel__head">
+            <h3 class="panel__title">Average Activity by Hour</h3>
+            <div class="legend-inline">
+                <span><i class="dot" style="background:var(--chart-1)"></i> Avg Revenue</span>
+                <span><i class="dot" style="background:var(--chart-4)"></i> Avg Items Sold</span>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="chart-box chart-box--tall"><canvas id="mdHourlyChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ════════════════  CUSTOMER MIX + BEST SELLERS  ════════════════ -->
+    <div class="perf-grid">
+
+        <!-- Customer Mix -->
+        <div class="panel">
+            <div class="panel__head">
+                        <div>
+<h3 class="panel__title ">Customer Mix</h3>            <p class="selling-sub mt-1">All-time · ranked by units sold</p></div>
+</div>
+            <div class="panel__body">
+                {% if customer_breakdown %}
+                    {% with max_count=customer_breakdown.0.count %}
+                    {% for row in customer_breakdown %}
+                    <div class="audience">
+                        <div class="audience__eyebrow ">
+                            {% if forloop.first %}Primary Audience{% elif forloop.counter == 2 %}Secondary{% else %}Audience{% endif %}
+                        </div>
+                        <div class="audience__row">
+                            <span class="audience__name">{{ row.customer_type|title }} ({{ row.count }})</span>
+                            <span class="audience__value">${{ row.total_spent }}</span>
+                        </div>
+                        <div class="audience__bar mb-4">
+                            <div class="audience__fill" style="--bar: {% widthratio row.count max_count 100 %}%"></div>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="text-muted">No sales data yet.</p>
+                    {% endwith %}
+                {% else %}
+                    <div class="mm-empty">No customer data yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Best Sellers -->
+<div class="panel whats-selling-main">
+    <div class="panel__head">
+        <div>
+            <h3 class="panel__title">Best Sellers</h3>
+            <p class="selling-sub mt-1">All-time · ranked by units sold</p>
+        </div>
+        {% if best_sellers|length > 5 %}
         {% endif %}
     </div>
-
-    <!-- Colour Stats -->
-    <div class="card p-3 mb-4">
-        <h5 class="mb-3">Sales by Colour — All Markets</h5>
-        <table class="table table-sm table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>Colour</th>
-                    <th>Qty Sold</th>
-                    <th>Revenue</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in colour_stats %}
-                <tr>
-                    <td>{{ row.colour }}</td>
-                    <td>{{ row.qty }}</td>
-                    <td>${{ row.revenue }}</td>
-                </tr>
+    <div class="panel__body">
+        {% if best_sellers %}
+            {% with max_qty=best_sellers.0.total_sold %}
+<div class="selling-list bs-scroll-list-dashboard">
+                    <!-- Top 5 always visible -->
+                {% for item in best_sellers %}
+                <div class="selling-row">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">{{ item.product_name_snapshot }}</span>
+                            <span class="selling-sold">{{ item.total_sold }} sold · ${{ item.total_revenue }}</span>
+                        </div>
+                        <div class="selling-bar">
+                            <div class="selling-fill" style="--bar: {% widthratio item.total_sold max_qty 100 %}%"></div>
+                        </div>
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+
+            </div>
+            {% endwith %}
+        {% else %}
+            <div class="mm-empty">No sales data yet.</div>
+        {% endif %}
+    </div>
+</div>
+
     </div>
 
-    <!-- Past Markets -->
-    <h2 class="mb-3">Past Markets</h2>
+    <!-- ════════════════  CATEGORY + COLOUR  ════════════════ -->
+    <div class="dash-grid">
+
+        <div class="panel gc-6">
+            <div class="panel__head"><h3 class="panel__title">Sales by Category</h3></div>
+            <div class="panel__body">
+                {% if category_stats %}
+                    {% with max_cat=category_stats.0.total_qty %}
+                    {% for cat in category_stats %}
+                    <div class="cat-row">
+                        <span class="cat-label">{{ cat.name }}</span>
+                        <span class="cat-bar"><span class="cat-fill" style="--bar: {% widthratio cat.total_qty max_cat 100 %}%"></span></span>
+                        <span class="cat-value">{{ cat.total_qty }}</span>
+                    </div>
+                    {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <div class="mm-empty">No category data yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="panel gc-6">
+            <div class="panel__head"><h3 class="panel__title">Colour Distribution</h3></div>
+            <div class="panel__body">
+                <div class="colour-grid">
+                    {% for row in colour_stats %}
+                    <div class="colour-pill">
+                        <span class="colour-pill__dot" style="background:
+                            {% if row.colour|lower == 'pink' %}#e08ba0
+                            {% elif row.colour|lower == 'purple' %}#b08aa8
+                            {% elif row.colour|lower == 'green' %}#84b39a
+                            {% elif row.colour|lower == 'blue' %}#8aa6c0
+                            {% elif row.colour|lower == 'yellow' %}#e6c06a
+                            {% else %}var(--accent){% endif %}">
+                        </span>
+                        <span class="colour-pill__name">{{ row.colour }}</span>
+                        <span class="colour-pill__count">{{ row.qty }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ════════════════  PAST MARKETS TABLE  ════════════════ -->
+    <div class="section-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Past Markets
+    </div>
+
     {% if past_markets %}
-        <table class="table table-bordered table-hover">
-            <thead class="table-light">
-                <tr>
-                    <th>Market</th>
-                    <th>Date</th>
-                    <th>Transactions</th>
-                    <th>Total Revenue</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for market in past_markets %}
-                <tr>
-                    <td>{{ market.name }}</td>
-                    <td>{{ market.ended_at|date:"N j, Y" }}</td>
-                    <td>{{ market.transaction_count }}</td>
-                    <td>${{ market.total_revenue|default:"0" }}</td>
-                    <td>
-                        <a href="{% url 'market_detail' market.id %}" class="btn btn-sm btn-outline-secondary">View</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="panel">
+        <div class="panel__body--flush">
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Market</th>
+                            <th>Date</th>
+                            <th class="num">Transactions</th>
+                            <th class="num">Revenue</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for market in past_markets %}
+                        <tr class="md-past-row">
+                            <td>
+                                <span style="font-weight:600; color:var(--text-dark);">{{ market.name }}</span>
+                            </td>
+                            <td style="color:var(--text-subtle); font-size:0.83rem;">
+                                {{ market.ended_at|date:"N j, Y" }}
+                            </td>
+                            <td class="num">{{ market.transaction_count }}</td>
+                            <td class="num" style="font-weight:700; color:var(--accent-dark);">
+                                ${{ market.total_revenue|default:"0" }}
+                            </td>
+                            <td class="num">
+                                <a href="{% url 'market_detail' market.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">
+                                    View
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                        <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     {% else %}
-        <p class="text-muted">No past markets yet.</p>
+        <div class="mm-empty">No past markets yet.</div>
     {% endif %}
 
-</div>
+    {% else %}
+    <!-- ════  EMPTY STATE (no completed markets yet)  ════ -->
+    <div class="md-empty-state">
+        <div class="md-empty-state__icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h2 class="md-empty-state__title">No markets completed yet</h2>
+        <p class="md-empty-state__text">Complete your first market session to see performance analytics here.</p>
+        {% if not active_market %}
+            <a href="{% url 'market_start' %}" class="btn-mm btn-mm--primary btn-mm--lg">Start Your First Market</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div><!-- /mm-page -->
+
+<!-- ── Data islands ── -->
+<script id="md-hour-labels"  type="application/json">{{ avg_hour_labels|safe }}</script>
+<script id="md-hour-revenue" type="application/json">{{ avg_hour_revenue|safe }}</script>
+<script id="md-hour-items"   type="application/json">{{ avg_hour_items|safe }}</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    "use strict";
+
+    function readJSON(id) {
+        var el = document.getElementById(id);
+        if (!el) return null;
+        try { return JSON.parse(el.textContent); } catch (e) { return null; }
+    }
+
+    var cssVars = getComputedStyle(document.documentElement);
+    var C = function (n) { return cssVars.getPropertyValue(n).trim(); };
+    var TICK = C('--chart-tick'), GRID = C('--chart-grid'),
+        ACCENT = C('--chart-1'), GOLD = C('--chart-4'), SURFACE = C('--surface-page');
+
+    if (window.Chart) {
+        Chart.defaults.font.family = "'Poppins', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = TICK;
+        Chart.defaults.plugins.legend.display = false;
+        Chart.defaults.plugins.tooltip.backgroundColor = C('--text-dark');
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    }
+
+    function gradient(ctx, area, from, to) {
+        var g = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+        g.addColorStop(0, from); g.addColorStop(1, to);
+        return g;
+    }
+    function mount(id, cfg) {
+        var el = document.getElementById(id);
+        return (el && window.Chart) ? new Chart(el, cfg) : null;
+    }
+
+    // ── Average hourly activity chart ──
+    var hLabels  = readJSON('md-hour-labels');
+    var hRevenue = readJSON('md-hour-revenue');
+    var hItems   = readJSON('md-hour-items');
+
+    if (hLabels && hRevenue && hItems) {
+        mount('mdHourlyChart', {
+            data: {
+                labels: hLabels,
+                datasets: [
+                    {
+                        type: 'line', label: 'Avg Revenue', data: hRevenue, yAxisID: 'y', order: 0,
+                        borderColor: ACCENT, backgroundColor: 'rgba(232,146,124,0.14)',
+                        fill: true, tension: 0.35, borderWidth: 2.5,
+                        pointBackgroundColor: ACCENT, pointBorderColor: SURFACE,
+                        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
+                    },
+                    {
+                        type: 'bar', label: 'Avg Items Sold', data: hItems, yAxisID: 'y1', order: 1,
+                        borderRadius: 6, maxBarThickness: 26,
+                        backgroundColor: function (c) {
+                            var a = c.chart.chartArea;
+                            return a ? gradient(c.chart.ctx, a, 'rgba(224,177,94,0.30)', 'rgba(224,177,94,0.80)')
+                                     : 'rgba(224,177,94,0.6)';
+                        }
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x:  { grid: { display: false }, ticks: { color: TICK }, border: { display: false } },
+                    y:  { position: 'left',  beginAtZero: true, grid: { color: GRID }, border: { display: false },
+                          ticks: { color: TICK, callback: function (v) { return '$' + v; } } },
+                    y1: { position: 'right', beginAtZero: true, grid: { display: false }, border: { display: false },
+                          ticks: { color: TICK, precision: 0 } }
+                }
+            }
+        });
+    }
+
+    // ── Animate bar fills ──
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+            var page = document.querySelector('.mm-page');
+            if (page) page.classList.add('is-loaded');
+        });
+    });
+
+    // ── Staggered KPI card entrance ──
+    var kpis = document.querySelectorAll('.kpi');
+    kpis.forEach(function (kpi, i) {
+        kpi.style.animationDelay = (i * 0.07) + 's';
+    });
+
+    // ── Past market rows: subtle fade-in-up on scroll ──
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('md-row--visible');
+                    io.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.md-past-row').forEach(function (row, i) {
+            row.style.transitionDelay = (i * 0.04) + 's';
+            io.observe(row);
+        });
+    } else {
+        document.querySelectorAll('.md-past-row').forEach(function (r) {
+            r.classList.add('md-row--visible');
+        });
+    }
+
+    // ── Auto-dismiss alerts ──
+    document.querySelectorAll('.auto-dismiss').forEach(function (alert) {
+        var keep = false;
+        alert.addEventListener('click', function (e) {
+            if (!e.target.closest('.alert__close')) keep = true;
+        });
+        setTimeout(function () {
+            if (keep) return;
+            alert.classList.remove('show'); alert.classList.add('fade');
+            setTimeout(function () { alert.remove(); }, 500);
+        }, 5000);
+    });
+
+})();
+</script>
+
 {% endblock %}

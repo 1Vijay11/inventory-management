@@ -123,7 +123,7 @@ MESSAGE_TAGS = { # here to add errors and bootrap to work properly
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Edmonton'
 
 USE_I18N = True
 

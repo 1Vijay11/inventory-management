@@ -1,21 +1,109 @@
-    {% extends "base.html" %}
-    {% block title %}Vividly Hooked Inventory Management System Market Dashboard{% endblock %}
+{% extends "base.html" %}
+{% block title %}Start a Market · Vividly Hooked{% endblock %}
 
-    {% block content %}
-        {% if messages %}
+{% block content %}
+<div class="mm-page">
+
+    {% if messages %}
         {% for message in messages %}
-        <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
-            {{ message }}
-            <button class="alert__close" onclick="this.parentElement.remove()">×</button>
-        </div>
+            <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                {{ message }}
+                <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+            </div>
         {% endfor %}
-        {% endif %}
+    {% endif %}
 
-        <h1>Start A MArket</h1>
-        <form method="POST">
-            {% csrf_token %}
-            {{ form.as_p}}
-            <button type = "submit"> Start a maket</button>
-        </form>
-    \   <a href="{% url 'market_dashboard' %}"> cacncel</a>
-        {% endblock %}
+    <!-- ════════════════  HERO HEADER  ════════════════ -->
+    <div class="market-hero">
+        <a href="{% url 'market_dashboard' %}" class="market-hero__eyebrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Dashboard
+        </a>
+        <div class="market-hero__row">
+            <div>
+                <h1 class="market-hero__title">Start a Market</h1>
+                <p class="market-hero__meta">Give your market session a name and get selling.</p>
+            </div>
+        </div>
+        <hr class="market-hero__divider">
+    </div>
+
+    <!-- ════════════════  FORM CARD  ════════════════ -->
+    <div class="ms-center">
+        <div class="panel ms-panel">
+            <div class="panel__head">
+                <h3 class="panel__title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    Market Details
+                </h3>
+            </div>
+            <div class="panel__body">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mm-field" style="margin-bottom: 1.25rem;">
+                        <label class="mm-field__label">Market Name</label>
+                        <input
+                            class="mm-input {% if form.name.errors %}mm-input--error{% endif %}"
+                            type="text"
+                            name="{{ form.name.html_name }}"
+                            value="{{ form.name.value|default:'' }}"
+                            placeholder="e.g. Whyte Ave Craft Fair, June 2026"
+                            autofocus
+                        >
+                        {% for error in form.name.errors %}
+                            <p class="sn-field-error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mm-field" style="margin-bottom: 1.75rem;">
+                        <label class="mm-field__label">Notes <span class="ms-optional">(optional)</span></label>
+                        <textarea
+                            class="mm-input {% if form.notes.errors %}mm-input--error{% endif %}"
+                            name="{{ form.notes.html_name }}"
+                            placeholder="Location, table number, event details…"
+                            rows="3"
+                        >{{ form.notes.value|default:'' }}</textarea>
+                        {% for error in form.notes.errors %}
+                            <p class="sn-field-error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="ms-actions">
+                        <button type="submit" class="btn-mm btn-mm--primary btn-mm--lg ms-submit-btn">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                                <path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            </svg>
+                            Start Market
+                        </button>
+                        <a href="{% url 'market_dashboard' %}" class="btn-mm btn-mm--ghost btn-mm--lg">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.auto-dismiss').forEach(function (alert) {
+    var keep = false;
+    alert.addEventListener('click', function (e) { if (!e.target.closest('.alert__close')) keep = true; });
+    setTimeout(function () {
+        if (keep) return;
+        alert.classList.remove('show'); alert.classList.add('fade');
+        setTimeout(function () { alert.remove(); }, 500);
+    }, 5000);
+});
+</script>
+
+{% endblock %}

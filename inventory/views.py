@@ -620,33 +620,14 @@ def market_start(request):
 @login_required
 def market_end(request, market_id):
     market = get_object_or_404(Market, id=market_id, user=request.user, is_active=True)
-    sales = market.sales.prefetch_related('items').order_by('-created_at')
-
-    # Same stats as market_detail
-    total_revenue = sales.aggregate(t=Sum('total'))['t'] or 0
-    total_tips = sales.aggregate(t=Sum('tip_amount'))['t'] or 0
-    total_transactions = sales.count()
-    cash_total = sales.filter(payment_method='cash').aggregate(t=Sum('total'))['t'] or 0
-    card_total = sales.filter(payment_method='card').aggregate(t=Sum('total'))['t'] or 0
-    avg_sale = round(float(total_revenue) / total_transactions, 2) if total_transactions else 0
-
     if request.method == 'POST':
         market.ended_at = timezone.now()
         market.is_active = False
         market.save()
         messages.success(request, f"'{market.name}' has ended.")
         return redirect('market_dashboard')
-
-    return render(request, 'inventory/market_end.html', {
-        'market': market,
-        'sales': sales,
-        'total_revenue': total_revenue,
-        'total_tips': total_tips,
-        'total_transactions': total_transactions,
-        'cash_total': cash_total,
-        'card_total': card_total,
-        'avg_sale': avg_sale,
-    })
+    # GET with no modal: just bounce back to detail
+    return redirect('market_detail', market_id=market_id)
 @login_required
 def sale_new(request):
     active_market = get_object_or_404(Market, user=request.user, is_active=True)
@@ -850,7 +831,7 @@ def market_detail(request, market_id):
     from collections import defaultdict
     hourly_stats = defaultdict(lambda: {'revenue': 0, 'items_sold': 0, 'sales': 0})
     for sale in sales:
-        hour = sale.created_at.strftime('%I %p').lstrip('0')
+        hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
         hourly_stats[hour]['revenue'] += float(sale.total)
         hourly_stats[hour]['sales'] += 1
         for item in sale.items.all():
@@ -880,7 +861,7 @@ def market_detail(request, market_id):
     from collections import defaultdict
     revenue_by_hour = defaultdict(float)
     for sale in sales:
-        hour = sale.created_at.strftime('%I %p').lstrip('0')
+        hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
         revenue_by_hour[hour] += float(sale.total)
     revenue_hours = list(revenue_by_hour.keys())
     revenue_values = list(revenue_by_hour.values())
@@ -1019,95 +1000,155 @@ def sale_edit(request, sale_id):
     })
 @login_required
 def market_dashboard(request):
+    from collections import defaultdict
+
     active_market = Market.objects.filter(user=request.user, is_active=True).first()
-    past_markets = Market.objects.filter(user=request.user, is_active=False).order_by('-ended_at').annotate(
-            total_revenue=Coalesce(
-                Sum('sales__total'),
-                Value(0),
-                output_field=DecimalField(max_digits=10, decimal_places=2),
-            ),
-            transaction_count=Count('sales'),
-        )
 
-    # Best sellers toggle — 'quantity' or 'percentage'
-    best_seller_mode = request.GET.get('best_seller_mode', 'quantity')
+    # ── Past markets with per-market totals ──────────────────────────────────
+    past_markets = Market.objects.filter(
+        user=request.user, is_active=False
+    ).order_by('-ended_at').annotate(
+        total_revenue=Coalesce(
+            Sum('sales__total'),
+            Value(0),
+            output_field=DecimalField(max_digits=10, decimal_places=2),
+        ),
+        transaction_count=Count('sales'),
+    )
 
-    if best_seller_mode == 'percentage':
-        # Get all snapshots for this user's markets
-        snapshots = StockSnapshot.objects.filter(
-            market__user=request.user
+    all_past = list(past_markets)          # evaluated once, reused below
+    market_count = len(all_past)
+
+    # ── Global aggregate KPIs ────────────────────────────────────────────────
+    all_sales = Sale.objects.filter(market__user=request.user, market__is_active=False)
+
+    total_revenue_all   = all_sales.aggregate(t=Sum('total'))['t'] or 0
+    total_tips_all      = all_sales.aggregate(t=Sum('tip_amount'))['t'] or 0
+    total_transactions_all = all_sales.count()
+
+    total_expenses_all = MarketExpense.objects.filter(
+        market__user=request.user
+    ).aggregate(t=Sum('amount'))['t'] or 0
+
+    total_profit_all = round(float(total_revenue_all) - float(total_expenses_all), 2)
+
+    avg_market_revenue     = round(float(total_revenue_all)      / market_count, 2) if market_count else 0
+    avg_market_profit      = round(float(total_profit_all)       / market_count, 2) if market_count else 0
+    avg_market_transactions = round(total_transactions_all       / market_count, 2) if market_count else 0
+    avg_sale_value         = round(float(total_revenue_all) / total_transactions_all, 2) if total_transactions_all else 0
+
+    # ── Best sellers (quantity mode only — clean, no broken percentage logic) ─
+    best_sellers = list(
+        SaleItem.objects.filter(
+            sale__market__user=request.user,
+            sale__market__is_active=False,
         ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
-            total_stock=Sum('stock_at_start')
+            total_sold=Sum('quantity'),
+            total_revenue=Sum('line_total'),
+        ).order_by('-total_sold')
+    )
+
+    # ── Customer mix across all markets ──────────────────────────────────────
+    customer_breakdown = all_sales.values('customer_type').annotate(
+        count=Count('id'),
+        total_spent=Sum('total'),
+    ).order_by('-count')
+
+    # ── Category stats across all markets ────────────────────────────────────
+    category_stats = Category.objects.filter(
+        user=request.user
+    ).annotate(
+        total_qty=Sum(
+            'products__sale_items__quantity',
+            filter=Q(
+                products__sale_items__sale__market__user=request.user,
+                products__sale_items__sale__market__is_active=False,
+            )
+        ),
+        total_revenue=Sum(
+            F('products__sale_items__line_total'),
+            filter=Q(
+                products__sale_items__sale__market__user=request.user,
+                products__sale_items__sale__market__is_active=False,
+            )
         )
+    ).filter(total_qty__isnull=False).order_by('-total_qty')
 
-        # Get total qty sold per product across all markets
-        sold = SaleItem.objects.filter(
-            sale__market__user=request.user
-        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
-            total_sold=Sum('quantity')
-        )
-
-        # Build a dict of sku -> sold qty
-        sold_dict = {s['product_sku_snapshot']: s['total_sold'] for s in sold}
-
-        # Calculate percentage for each snapshot
-        best_sellers = []
-        for s in best_sellers_qs:
-            best_sellers.append({
-                'name': s['product_name_snapshot'],
-                'sku': s['product_sku_snapshot'],
-                'total_sold': s['total_sold'],
-            })        
-        for snap in snapshots:
-            sku = snap['product_sku_snapshot']
-            total_stock = snap['total_stock']
-            total_sold = sold_dict.get(sku, 0)
-            if total_stock > 0:
-                percentage = round((total_sold / total_stock) * 100, 1)
-            else:
-                percentage = 0
-            for s in best_sellers_qs:
-                        best_sellers.append({
-                            'name': s['product_name_snapshot'],
-                            'sku': s['product_sku_snapshot'],
-                            'total_sold': s['total_sold'],
-                        })
-        best_sellers = sorted(best_sellers, key=lambda x: x['percentage'], reverse=True)[:10]
-
-    else:
-        # Quantity mode — straightforward
-        best_sellers_qs = SaleItem.objects.filter(
-            sale__market__user=request.user
-        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
-            total_sold=Sum('quantity')
-        ).order_by('-total_sold')[:10]
-        best_sellers = list(best_sellers_qs)
-
-    # Colour stats across all markets
+    # ── Colour stats across all markets ──────────────────────────────────────
     colours = ['pink', 'purple', 'green', 'blue', 'yellow']
     colour_stats = []
     for colour in colours:
-        qty = SaleItem.objects.filter(
+        qs = SaleItem.objects.filter(
             sale__market__user=request.user,
-            product_name_snapshot__icontains=colour
-        ).aggregate(t=Sum('quantity'))['t'] or 0
-        revenue = SaleItem.objects.filter(
-            sale__market__user=request.user,
-            product_name_snapshot__icontains=colour
-        ).aggregate(t=Sum('line_total'))['t'] or 0
-        colour_stats.append({
-            'colour': colour.title(),
-            'qty': qty,
-            'revenue': revenue,
-        })
+            sale__market__is_active=False,
+            product_name_snapshot__icontains=colour,
+        )
+        qty     = qs.aggregate(t=Sum('quantity'))['t'] or 0
+        revenue = qs.aggregate(t=Sum('line_total'))['t'] or 0
+        colour_stats.append({'colour': colour.title(), 'qty': qty, 'revenue': revenue})
     colour_stats = sorted(colour_stats, key=lambda x: x['qty'], reverse=True)
 
+    # ── Average hourly activity across all past markets ───────────────────────
+    # Step 1: collect (revenue, items_sold) per hour-slot per market
+    hour_market_revenue = defaultdict(lambda: defaultdict(float))
+    hour_market_items   = defaultdict(lambda: defaultdict(int))
+
+    all_sales_prefetched = Sale.objects.filter(
+        market__user=request.user,
+        market__is_active=False,
+    ).prefetch_related('items')
+
+    market_ids_seen = defaultdict(set)   # hour -> set of market_ids that had activity that hour
+
+    for sale in all_sales_prefetched:
+        local_dt = timezone.localtime(sale.created_at)          # ← converts, but...
+        hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
+        mid  = sale.market_id
+        hour_market_revenue[hour][mid] += float(sale.total)
+        market_ids_seen[hour].add(mid)
+        for item in sale.items.all():
+            hour_market_items[hour][mid] += item.quantity
+
+    # Step 2: average across however many markets had sales in that hour
+    def _hour_sort_key(h):
+        parts = h.split()
+        num = int(parts[0])
+        meridiem = parts[1] if len(parts) > 1 else 'AM'
+        if meridiem == 'AM':
+            return 0 if num == 12 else num        # 12 AM = midnight = 0
+        else:
+            return 12 if num == 12 else num + 12  # 12 PM = noon = 12, 1 PM = 13, etc.
+
+    all_hours = sorted(set(hour_market_revenue.keys()), key=_hour_sort_key)
+    avg_hourly_revenue = []
+    avg_hourly_items   = []
+    for hour in all_hours:
+        mids = market_ids_seen[hour]
+        n    = len(mids)
+        avg_hourly_revenue.append(round(sum(hour_market_revenue[hour].values()) / n, 2))
+        avg_hourly_items.append(round(sum(hour_market_items[hour].values())   / n, 1))
+
     return render(request, 'inventory/market_dashboard.html', {
+        # nav
         'active_market': active_market,
-        'past_markets': past_markets,
-        'best_sellers': best_sellers,
-        'best_seller_mode': best_seller_mode,
-        'colour_stats': colour_stats,
+        'past_markets':  past_markets,
+        'market_count':  market_count,
+        # global KPIs
+        'avg_market_revenue':      avg_market_revenue,
+        'avg_market_profit':       avg_market_profit,
+        'avg_market_transactions': avg_market_transactions,
+        'avg_sale_value':          avg_sale_value,
+        'total_revenue_all':       total_revenue_all,
+        'total_profit_all':        total_profit_all,
+        # tables / charts
+        'best_sellers':        best_sellers,
+        'customer_breakdown':  customer_breakdown,
+        'category_stats':      category_stats,
+        'colour_stats':        colour_stats,
+        # hourly chart data islands (JSON-safe)
+        'avg_hour_labels':   json.dumps(all_hours),
+        'avg_hour_revenue':  json.dumps(avg_hourly_revenue),
+        'avg_hour_items':    json.dumps(avg_hourly_items),
     })
 # =============================
 #  Login Page View 

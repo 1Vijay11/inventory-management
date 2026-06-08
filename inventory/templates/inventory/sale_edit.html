@@ -1,100 +1,296 @@
 {% extends "base.html" %}
+{% block title %}Edit Sale #{{ sale.id }} · Vividly Hooked{% endblock %}
+
 {% block content %}
-<div class="container py-4">
+<div class="mm-page">
 
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            <div class="message-div alert alert-{{ message.tags }} fade show auto-dismiss" role="alert">
+                {{ message }}
+                <button class="alert__close" onclick="this.parentElement.remove()">×</button>
+            </div>
         {% endfor %}
     {% endif %}
 
-    <a href="{% url 'market_detail' sale.market.id %}" class="btn btn-outline-secondary btn-sm mb-3">
-        Back to Dashboard
-    </a>
-
-    <h1 class="mb-1">Edit Sale #{{ sale.id }}</h1>
-    <p class="text-muted mb-4">{{ sale.created_at|date:"N j, Y g:i A" }}</p>
-
-    <!-- Items -->
-    <h2 class="mb-3">Items</h2>
-    <form method="POST">
-        {% csrf_token %}
-        <table class="table table-bordered mb-4">
-            <thead class="table-light">
-                <tr>
-                    <th>Product</th>
-                    <th>SKU</th>
-                    <th>Unit Price</th>
-                    <th>Qty</th>
-                    <th>Line Total</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    <td>{{ item.product_name_snapshot }}</td>
-                    <td>{{ item.product_sku_snapshot }}</td>
-                    <td>${{ item.unit_price_snapshot }}</td>
-                    <td>
-                        <input type="number" name="quantity_{{ item.id }}"
-                            value="{{ item.quantity }}" min="1"
-                            class="form-control form-control-sm" style="width: 70px;">
-                    </td>
-                    <td>${{ item.line_total }}</td>
-                    <td>
-                        <button type="submit" name="action" value="remove_item"
-                            class="btn btn-sm btn-outline-danger"
-                            onclick="return confirm('Remove this item?')"
-                            formaction="{% url 'sale_edit' sale.id %}">
-                            <input type="hidden" name="item_id" value="{{ item.id }}">
-                            Remove
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Sale Details -->
-        <h2 class="mb-3">Sale Details</h2>
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <label class="form-label">Payment Method</label>
-                <select name="payment_method" class="form-select">
-                    <option value="cash" {% if sale.payment_method == 'cash' %}selected{% endif %}>Cash</option>
-                    <option value="card" {% if sale.payment_method == 'card' %}selected{% endif %}>Card</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Discount ($)</label>
-                <input type="number" name="discount_amount" step="0.01" min="0"
-                    value="{{ sale.discount_amount }}" class="form-control">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Tip ($)</label>
-                <input type="number" name="tip_amount" step="0.01" min="0"
-                    value="{{ sale.tip_amount }}" class="form-control">
+    <!-- ════════════════  HERO HEADER  ════════════════ -->
+    <div class="market-hero">
+        <a href="{% url 'market_detail' sale.market.id %}" class="market-hero__eyebrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ sale.market.name }}
+        </a>
+        <div class="market-hero__row">
+            <div>
+                <h1 class="market-hero__title">Edit Sale <span style="-webkit-text-fill-color: var(--text-mid); background: none; color: var(--text-mid);">#{{ sale.id }}</span></h1>
+                <p class="market-hero__meta">{{ sale.created_at|date:"N j, Y · g:i A" }}</p>
             </div>
         </div>
-        <div class="col-md-3">
-    <label class="form-label">Customer Type</label>
-    <select name="customer_type" class="form-select">
-        <option value="child" {% if sale.customer_type == 'child' %}selected{% endif %}>Child</option>
-        <option value="teen" {% if sale.customer_type == 'teen' %}selected{% endif %}>Teen</option>
-        <option value="young_adult" {% if sale.customer_type == 'young_adult' %}selected{% endif %}>Young Adult</option>
-        <option value="adult" {% if sale.customer_type == 'adult' %}selected{% endif %}>Adult</option>
-    </select>
-</div>
+        <hr class="market-hero__divider">
+    </div>
 
-        <div class="d-flex gap-2">
-            <button type="submit" name="action" value="save" class="btn btn-primary">Save Changes</button>
-            <button type="submit" name="action" value="delete" class="btn btn-danger"
-                onclick="return confirm('Delete Sale #{{ sale.id }}? This cannot be undone.')">
-                Delete Sale
-            </button>
-        </div>
+    <!-- ════════════════  TWO-COLUMN LAYOUT  ════════════════ -->
+    <form method="POST" action="{% url 'sale_edit' sale.id %}">
+    {% csrf_token %}
 
+    <div class="sn-layout">
+
+        <!-- ── LEFT: Items table ── -->
+        <div class="sn-left">
+
+            <div class="panel">
+                <div class="panel__head">
+                    <h3 class="panel__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/>
+                            <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Items
+                    </h3>
+                    <span class="sn-cart-count">{{ items|length }} item{{ items|length|pluralize }}</span>
+                </div>
+                <div class="panel__body--flush">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="num">Unit Price</th>
+                                    <th class="num">Qty</th>
+                                    <th class="num">Line Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <span class="sn-cart-name">{{ item.product_name_snapshot }}</span>
+                                        <span class="sn-cart-sku">SKU {{ item.product_sku_snapshot }}</span>
+                                    </td>
+                                    <td class="num">${{ item.unit_price_snapshot }}</td>
+                                    <td class="num">
+                                        <input
+                                            type="number"
+                                            name="quantity_{{ item.id }}"
+                                            value="{{ item.quantity }}"
+                                            min="1"
+                                            class="mm-input se-qty-input"
+                                        >
+                                    </td>
+                                    <td class="num" style="font-weight:700; color: var(--accent-dark);">${{ item.line_total }}</td>
+                                    <td class="num">
+                                        <button
+                                            type="submit"
+                                            name="action"
+                                            value="remove_item"
+                                            class="sn-remove-btn"
+                                            title="Remove item"
+                                            onclick="return confirm('Remove {{ item.product_name_snapshot }} from this sale?')"
+                                        >
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Subtotal row -->
+                    <div class="sn-subtotal-row">
+                        <span class="sn-subtotal-label">Subtotal</span>
+                        <span class="sn-subtotal-value">${{ sale.subtotal }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /sn-left -->
+
+        <!-- ── RIGHT: Sale details + actions ── -->
+        <div class="sn-right">
+            <div class="panel">
+                <div class="panel__head">
+                    <h3 class="panel__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 12V22H4V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 7H2v5h20V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        Sale Details
+                    </h3>
+                </div>
+                <div class="panel__body">
+
+                    <!-- Payment Method -->
+                    <div class="sn-field-group">
+                        <p class="sn-section-label">Payment</p>
+                        <div class="sn-pay-toggle">
+                            <label class="sn-pay-option">
+                                <input type="radio" name="payment_method" value="cash"
+                                    {% if sale.payment_method == 'cash' %}checked{% endif %}>
+                                <span class="sn-pay-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
+                                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    Cash
+                                </span>
+                            </label>
+                            <label class="sn-pay-option">
+                                <input type="radio" name="payment_method" value="card"
+                                    {% if sale.payment_method == 'card' %}checked{% endif %}>
+                                <span class="sn-pay-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M2 10h20" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    Card
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Customer Type -->
+                    <div class="sn-field-group">
+                        <p class="sn-section-label">Customer Type</p>
+                        <div class="mm-field">
+                            <select name="customer_type" class="mm-input">
+                                <option value="child"       {% if sale.customer_type == 'child' %}selected{% endif %}>Child</option>
+                                <option value="teen"        {% if sale.customer_type == 'teen' %}selected{% endif %}>Teen</option>
+                                <option value="young_adult" {% if sale.customer_type == 'young_adult' %}selected{% endif %}>Young Adult</option>
+                                <option value="adult"       {% if sale.customer_type == 'adult' %}selected{% endif %}>Adult</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Discount + Tip -->
+                    <div class="sn-field-group">
+                        <p class="sn-section-label">Adjustments</p>
+                        <div class="form-row">
+                            <div class="mm-field">
+                                <label class="mm-field__label">Discount ($)</label>
+                                <input type="number" name="discount_amount" step="0.01" min="0"
+                                    value="{{ sale.discount_amount }}" class="mm-input">
+                            </div>
+                            <div class="mm-field">
+                                <label class="mm-field__label">Tip ($)</label>
+                                <input type="number" name="tip_amount" step="0.01" min="0"
+                                    value="{{ sale.tip_amount }}" class="mm-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="sn-summary">
+                        <div class="sn-summary__row">
+                            <span>Subtotal</span>
+                            <span id="se-sum-subtotal">${{ sale.subtotal }}</span>
+                        </div>
+                        <div class="sn-summary__row" id="se-discount-row" {% if not sale.discount_amount %}style="display:none;"{% endif %}>
+                            <span>Discount</span>
+                            <span id="se-sum-discount" class="money-neg">−${{ sale.discount_amount }}</span>
+                        </div>
+                        <div class="sn-summary__row" id="se-tip-row" {% if not sale.tip_amount %}style="display:none;"{% endif %}>
+                            <span>Tip</span>
+                            <span id="se-sum-tip" class="money-pos">+${{ sale.tip_amount }}</span>
+                        </div>
+                        <div class="sn-summary__row sn-summary__total">
+                            <span>Total</span>
+                            <span id="se-sum-total">${{ sale.total }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Save button -->
+                    <button type="submit" name="action" value="save" class="btn-mm btn-mm--primary btn-mm--lg sn-submit-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                        Save Changes
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- Danger zone: delete sale -->
+            <div class="danger-zone">
+                <div>
+                    <p class="danger-zone__title">Delete Sale</p>
+                    <p class="danger-zone__text">This permanently removes Sale #{{ sale.id }} and restores all stock. This cannot be undone.</p>
+                </div>
+                <button
+                    type="submit"
+                    name="action"
+                    value="delete"
+                    class="btn-mm btn-mm--solid-danger btn-mm--sm"
+                    onclick="return confirm('Delete Sale #{{ sale.id }}? This cannot be undone.')"
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Delete Sale
+                </button>
+            </div>
+
+        </div><!-- /sn-right -->
+
+    </div><!-- /sn-layout -->
     </form>
-</div>
+
+</div><!-- /mm-page -->
+
+<script>
+(function () {
+    "use strict";
+    var subtotal = parseFloat("{{ sale.subtotal }}") || 0;
+
+    var discountInput = document.querySelector('[name="discount_amount"]');
+    var tipInput      = document.querySelector('[name="tip_amount"]');
+
+    var sumDiscount  = document.getElementById('se-sum-discount');
+    var sumTip       = document.getElementById('se-sum-tip');
+    var sumTotal     = document.getElementById('se-sum-total');
+    var discountRow  = document.getElementById('se-discount-row');
+    var tipRow       = document.getElementById('se-tip-row');
+
+    function fmt(n) { return '$' + n.toFixed(2); }
+
+    function recalc() {
+        var disc  = Math.max(0, parseFloat(discountInput.value) || 0);
+        var tip   = Math.max(0, parseFloat(tipInput.value)      || 0);
+        var total = Math.max(0, subtotal - disc + tip);
+
+        if (sumDiscount) sumDiscount.textContent = '−' + fmt(disc);
+        if (sumTip)      sumTip.textContent      = '+' + fmt(tip);
+        if (sumTotal)    sumTotal.textContent     = fmt(total);
+
+        if (discountRow) discountRow.style.display = disc > 0 ? '' : 'none';
+        if (tipRow)      tipRow.style.display      = tip  > 0 ? '' : 'none';
+    }
+
+    if (discountInput) discountInput.addEventListener('input', recalc);
+    if (tipInput)      tipInput.addEventListener('input', recalc);
+
+    recalc();
+
+    // Auto-dismiss alerts
+    document.querySelectorAll('.auto-dismiss').forEach(function (alert) {
+        var keep = false;
+        alert.addEventListener('click', function (e) { if (!e.target.closest('.alert__close')) keep = true; });
+        setTimeout(function () {
+            if (keep) return;
+            alert.classList.remove('show'); alert.classList.add('fade');
+            setTimeout(function () { alert.remove(); }, 500);
+        }, 5000);
+    });
+})();
+</script>
+
 {% endblock %}

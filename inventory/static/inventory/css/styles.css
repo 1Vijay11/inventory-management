@@ -146,10 +146,11 @@ nav.inventory-navbar .nav-btn-active:hover {
     background-color: var(--accent-dark);
     color: #fff;
 }
-.nav-container{
+.nav-container {
     max-width: 1350px;
     margin: 0 auto;
-
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 /* Add Product */
 nav.inventory-navbar .nav-btn-ghost {
@@ -1753,6 +1754,15 @@ login Page
     padding: 1.5rem 1rem 3rem;
     color: var(--text-dark);
 }
+@media (max-width: 430px) {
+    .mm-page {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+    .market-hero__title {
+        font-size: clamp(1.7rem, 8vw, 2.4rem);
+    }
+}
 
 /* =============================================================================
    §  RESPONSIVE NAVIGATION
@@ -2370,7 +2380,9 @@ login Page
     gap: var(--mm-gap); margin-bottom: var(--mm-gap);
 }
 .perf-grid .panel { margin-bottom: 0; }
-.perf-grid .whats-selling { grid-column: 2; grid-row: 1 / span 2; }
+.perf-grid .whats-selling-main { grid-column: 2; grid-row: 1 / span 2; max-height: 450px; }
+.perf-grid .whats-selling { grid-column: 2; grid-row: 1 / span 2;  }
+
 @media (max-width: 991.98px) {
     .perf-grid { grid-template-columns: 1fr; }
     .perf-grid .whats-selling { grid-column: auto; grid-row: auto; }
@@ -2759,3 +2771,212 @@ login Page
     .sn-product-thumb { width: 36px; height: 36px; }
     .sn-pay-btn { padding: 0.55rem 0.6rem; font-size: 0.82rem; gap: 5px; }
 }
+/* Quantity input inside the edit-sale items table */
+.se-qty-input {
+    width: 70px;
+    padding: 0.35rem 0.5rem;
+    text-align: center;
+    display: inline-block;
+}
+/* =============================================================================
+   §  MARKET START PAGE  (market_start.html)
+   Centred single-column form card — reuses mm-field, panel, btn-mm.
+   ============================================================================= */
+
+/* Centre the card on wide screens, full-width on mobile */
+.ms-center {
+    display: flex;
+    justify-content: center;
+}
+
+.ms-panel {
+    width: 100%;
+    max-width: 520px;
+}
+
+/* Error state for mm-input */
+.mm-input--error {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 3px rgba(192, 96, 74, 0.15) !important;
+}
+
+/* "optional" label hint */
+.ms-optional {
+    font-weight: 400;
+    font-size: 0.7rem;
+    color: var(--text-faint);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 4px;
+}
+
+/* Button row */
+.ms-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.ms-submit-btn {
+    flex: 1;
+    justify-content: center;
+}
+@media (max-width: 400px) {
+    .ms-actions { flex-direction: column; }
+    .ms-submit-btn { width: 100%; }
+}
+/* =============================================================================
+   §  END MARKET MODAL
+   ============================================================================= */
+.mm-modal {
+    border: 1px solid var(--border-table);
+    border-radius: var(--mm-radius);
+    overflow: hidden;
+    font-style: normal;
+}
+.mm-modal__head {
+    background: var(--danger-surface);
+    border-bottom: 1px solid var(--border-mid);
+    gap: 0.75rem;
+    padding: 1.1rem 1.25rem;
+}
+.mm-modal__icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fae0da; color: var(--danger);
+}
+.mm-modal__title {
+    font-size: 1rem; font-weight: 700; color: var(--danger);
+    margin: 0; flex: 1;
+}
+.mm-modal__body { padding: 1.25rem; background: var(--surface-page); }
+.mm-modal__market-name {
+    font-size: 1.05rem; font-weight: 700; color: var(--text-dark);
+    margin: 0 0 1rem;
+}
+.mm-modal__stats {
+    display: flex; gap: 0; margin-bottom: 1.1rem;
+    border: 1px solid var(--border-row); border-radius: 10px; overflow: hidden;
+}
+.mm-modal__stat {
+    flex: 1; text-align: center; padding: 0.7rem 0.5rem;
+    border-right: 1px solid var(--border-row);
+}
+.mm-modal__stat:last-child { border-right: none; }
+.mm-modal__stat-label {
+    display: block; font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--text-subtle); margin-bottom: 3px;
+}
+.mm-modal__stat-value { font-size: 1rem; font-weight: 700; color: var(--text-dark); }
+.mm-modal__warning {
+    font-size: 0.8rem; color: var(--text-subtle); margin: 0;
+    padding: 0.75rem 0.9rem;
+    background: var(--surface-warm); border: 1px solid var(--border-row); border-radius: 8px;
+}
+.mm-modal__foot {
+    background: var(--surface-page); border-top: 1px solid var(--border-row);
+    padding: 0.9rem 1.25rem; gap: 0.6rem;
+}
+
+/* =============================================================================
+   §  MARKET DASHBOARD PAGE  (market_dashboard.html)
+   All new rules are prefixed .md-* to avoid collisions.
+   Everything else (panel, kpi, selling-*, audience-*, cat-*, colour-*,
+   perf-grid, dash-grid, section-head) is reused from the existing system.
+   ============================================================================= */
+
+/* ── Live market button — pulsing green dot ── */
+.md-live-btn { position: relative; }
+.md-live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #5fcb8a;
+    flex-shrink: 0;
+    animation: mdPulse 1.8s ease-in-out infinite;
+}
+@keyframes mdPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(95, 203, 138, 0.55); }
+    50%       { box-shadow: 0 0 0 6px rgba(95, 203, 138, 0);  }
+}
+
+/* ── KPI card staggered entrance ──────────────────────────────────────────────
+   The JS sets animation-delay per card; this rule supplies the base animation.
+   market_detail already defines mmFadeUp so we reuse it.                       */
+@media (prefers-reduced-motion: no-preference) {
+    .kpi { animation: mmFadeUp 0.45s ease both; }
+}
+
+/* ── Past-market table rows: fade-in-up on scroll ── */
+.md-past-row {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.md-past-row.md-row--visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* ── Empty state (no completed markets) ── */
+.md-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 4rem 1rem 3rem;
+    gap: 1rem;
+}
+.md-empty-state__icon {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-warm);
+    border: 1px solid var(--border-table);
+    color: var(--text-faint);
+    margin-bottom: 0.5rem;
+}
+.md-empty-state__title {
+    font-size: 1.3rem; font-weight: 700;
+    color: var(--text-dark); margin: 0;
+}
+.md-empty-state__text {
+    font-size: 0.9rem; color: var(--text-subtle);
+    margin: 0; max-width: 38ch;
+}
+/* ── Best sellers expand button ── */
+.bs-expand-btn__icon {
+    transition: transform .25s ease;
+}
+.bs-expand-btn[aria-expanded="true"] .bs-expand-btn__icon {
+    transform: rotate(180deg);
+}
+.bs-expand-btn[aria-expanded="true"] .bs-expand-btn__label::before {
+    content: "Show less";
+}
+.bs-expand-btn[aria-expanded="false"] .bs-expand-btn__label {
+    /* label text comes from the template */
+}
+.bs-expand-btn[aria-expanded="true"] .bs-expand-btn__label {
+    font-size: 0; /* hide the "Show all N" text when expanded */
+}
+.bs-expand-btn[aria-expanded="true"] .bs-expand-btn__label::before {
+    font-size: 0.78rem; /* restore size for the "Show less" pseudo-content */
+}
+
+/* Extra rows animate in gently when collapse opens */
+@media (prefers-reduced-motion: no-preference) {
+    .bs-extra-row {
+        animation: mmFadeUp 0.3s ease both;
+    }
+}
+/* ── Scrollable best sellers list ── */
+.bs-scroll-list-dashboard {
+    max-height: 330px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-mid) transparent;
+}
+.bs-scroll-list::-webkit-scrollbar { width: 4px; }
+.bs-scroll-list::-webkit-scrollbar-track { background: transparent; }
+.bs-scroll-list::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
+.bs-scroll-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }

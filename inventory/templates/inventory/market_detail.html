@@ -398,10 +398,59 @@
                 <p class="finalize__text">This will lock all transaction records and archive the session data for reporting.</p>
             </div>
         </div>
-        <a href="{% url 'market_end' market.id %}" class="btn-mm btn-mm--solid-danger btn-mm--lg">End Market Session</a>
+<button type="button" class="btn-mm btn-mm--solid-danger btn-mm--lg" data-bs-toggle="modal" data-bs-target="#endMarketModal">
+    End Market Session
+</button>
     </div>
     {% endif %}
-
+<!-- ── End Market confirmation modal ── -->
+<div class="modal fade" id="endMarketModal" tabindex="-1" aria-labelledby="endMarketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content mm-modal">
+            <div class="modal-header mm-modal__head">
+                <div class="mm-modal__icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h5 class="modal-title mm-modal__title" id="endMarketModalLabel">End Market Session?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body mm-modal__body">
+                <p class="mm-modal__market-name">{{ market.name }}</p>
+                <div class="mm-modal__stats">
+                    <div class="mm-modal__stat">
+                        <span class="mm-modal__stat-label">Revenue</span>
+                        <span class="mm-modal__stat-value">${{ total_revenue }}</span>
+                    </div>
+                    <div class="mm-modal__stat">
+                        <span class="mm-modal__stat-label">Transactions</span>
+                        <span class="mm-modal__stat-value">{{ total_transactions }}</span>
+                    </div>
+                    <div class="mm-modal__stat">
+                        <span class="mm-modal__stat-label">Avg Sale</span>
+                        <span class="mm-modal__stat-value">${{ avg_sale }}</span>
+                    </div>
+                </div>
+                <p class="mm-modal__warning">This will lock all transaction records and archive the session. This cannot be undone.</p>
+            </div>
+            <div class="modal-footer mm-modal__foot">
+                <button type="button" class="btn-mm btn-mm--ghost" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{% url 'market_end' market.id %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-mm btn-mm--solid-danger">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Confirm End Market
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 {% endblock %}
 
