@@ -83,12 +83,12 @@
             {% else %}<div class="kpi__sub">per transaction</div>{% endif %}
         </div>
     </div>
+    <div class="dash-grid">
 
     <!-- ════════════════  PERFORMANCE · CUSTOMER MIX · WHAT'S SELLING  ════════════════ -->
-    <div class="perf-grid">
 
         <!-- Performance (payments doughnut) -->
-        <div class="panel">
+        <div class="panel gc-6">
             <div class="panel__head"><h3 class="panel__title">Performance</h3></div>
             <div class="panel__body">
                 <div class="split-stat" style="flex-direction:column;">
@@ -118,7 +118,7 @@
         </div>
 
         <!-- Customer Mix (audience spend bars) -->
-        <div class="panel">
+        <div class="panel gc-6">
             <div class="panel__head"><h3 class="panel__title">Customer Mix</h3></div>
             <div class="panel__body">
                 {% if customer_breakdown %}
@@ -141,8 +141,24 @@
                 {% endif %}
             </div>
         </div>
-
-        <!-- What's Selling (ranked list, tall right column) -->
+</div>  
+    <!-- ════════════════  HOURLY ACTIVITY  ════════════════ -->
+    {% if sales %}
+    <div class="panel">
+        <div class="panel__head">
+            <h3 class="panel__title">Activity by Hour</h3>
+            <div class="legend-inline">
+                <span><i class="dot" style="background:var(--chart-1)"></i> Revenue</span>
+                <span><i class="dot" style="background:var(--chart-4)"></i> Items sold</span>
+            </div>
+        </div>
+        <div class="panel__body">
+            <div class="chart-box"><canvas id="hourlyChart"></canvas></div>
+        </div>
+    </div>
+    {% endif %}
+<!-- ================== W H A T S    S E L L I N G +======== -->
+ 
         <div class="panel whats-selling">
             <div class="panel__head">
                 <div>
@@ -175,23 +191,8 @@
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    <!-- ════════════════  HOURLY ACTIVITY  ════════════════ -->
-    {% if sales %}
-    <div class="panel">
-        <div class="panel__head">
-            <h3 class="panel__title">Activity by Hour</h3>
-            <div class="legend-inline">
-                <span><i class="dot" style="background:var(--chart-1)"></i> Revenue</span>
-                <span><i class="dot" style="background:var(--chart-4)"></i> Items sold</span>
-            </div>
-        </div>
-        <div class="panel__body">
-            <div class="chart-box"><canvas id="hourlyChart"></canvas></div>
-        </div>
-    </div>
-    {% endif %}
+
 
     <!-- ════════════════  CATEGORY + COLOUR  ════════════════ -->
     <div class="dash-grid">
@@ -235,8 +236,8 @@
     <div class="panel">
         <div class="rtabs-head">
             <div class="rtabs-nav">
-                <button type="button" class="rtab is-active" data-rtab="inventory">Inventory Sold</button>
-                <button type="button" class="rtab" data-rtab="history">Sale History</button>
+                <button type="button" class="rtab is-active" data-rtab="history">Sale History</button>
+                <button type="button" class="rtab " data-rtab="inventory">Inventory Sold</button>
             </div>
             <div class="rtabs-search toolbar">
                 <span class="toolbar__search">
@@ -247,19 +248,19 @@
         </div>
 
         <!-- Inventory Sold -->
-        <div class="rtab-panel is-active" data-rtab-panel="inventory">
+        <div class="rtab-panel " data-rtab-panel="inventory">
             <div class="panel__body--flush">
                 {% if items_sold %}
                 <div class="table-scroll">
                     <table class="data-table">
                         <thead>
-                            <tr><th>Product Name</th><th>SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Revenue</th></tr>
+                            <tr><th>Product Name</th><th class="d-none">SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Revenue</th></tr>
                         </thead>
                         <tbody>
                             {% for item in items_sold %}
                             <tr data-search="{{ item.product_name_snapshot }} {{ item.product_sku_snapshot }}">
                                 <td>{{ item.product_name_snapshot }}</td>
-                                <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
+                                <td class="d-none"><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
                                 <td class="num">${{ item.unit_price_snapshot }}</td>
                                 <td class="num">{{ item.total_qty }}</td>
                                 <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ item.total_revenue }}</span></td>
@@ -273,28 +274,47 @@
         </div>
 
         <!-- Sale History -->
-        <div class="rtab-panel" data-rtab-panel="history">
+        <div class="rtab-panel is-active" data-rtab-panel="history">
             <div class="panel__body--flush">
                 {% if sales %}
                 <div class="table-scroll">
                     <table class="data-table">
                         <thead>
-                            <tr><th>Time</th><th>Payment</th><th class="num">Subtotal</th><th class="num">Discount</th><th class="num">Tip</th><th class="num">Total</th><th></th></tr>
+                            <tr>
+                                <th>Time</th>
+                                <th class="">Payment</th>
+                                <th class="num">Subtotal</th>
+                                <th class="num d-none d-sm-table-cell">Discount</th>
+                                <th class="num d-none d-sm-table-cell">Tip</th>
+                                <th class="num">Total</th>
+                                <th></th></tr>
                         </thead>
                         <tbody>
                             {% for sale in sales %}
-                            <tr data-search="#{{ sale.id }} {{ sale.get_payment_method_display }}">
-                                <td>{{ sale.created_at|date:"g:i A" }}</td>
-                                <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
-                                <td class="num">${{ sale.subtotal }}</td>
-                                <td class="num">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                <td class="num">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                <td class="num"><strong>${{ sale.total }}</strong></td>
-                                <td class="num">
-                                    <button class="btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
-                                    {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
-                                </td>
-                            </tr>
+                            <tr data-search="#{{ sale.id }} {{ sale.get_payment_method_display }}" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">
+                                    <td>{{ sale.created_at|date:"g:i A" }}</td>
+                                    <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
+                                    <td class="num">${{ sale.subtotal }}</td>
+                                    
+                                    <td class="num d-none d-sm-table-cell">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                    <td class="num d-none d-sm-table-cell">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                    <td class="num d-none d-sm-table-cell"><strong>${{ sale.total }}</strong></td>
+                                    
+                                    <td class="d-table-cell d-sm-none num">
+                                        <strong>${{ sale.total }}</strong>
+                                        {% if sale.discount_amount > 0 %}
+                                        <div><span class="money-neg">-${{ sale.discount_amount }}</span></div>
+                                        {% endif %}
+                                        {% if sale.tip_amount > 0 %}
+                                        <div><span class="money-pos">+${{ sale.tip_amount }}</span></div>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <td class="num">
+                                        <button class="d-none d-sm-table-cell btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
+                                        {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
+                                    </td>
+                                </tr>
                             <tr class="collapse" id="sale-items-{{ sale.id }}" data-detail>
                                 <td class="sale-detail-cell" colspan="8">
                                     <div class="sale-detail-inner">
@@ -307,7 +327,7 @@
                                                     <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
                                                     <td class="num">${{ item.unit_price_snapshot }}</td>
                                                     <td class="num">{{ item.quantity }}</td>
-                                                    <td class="num">${{ item.line_total }}</td>
+                                                    <td class="num">${{ item.line_total }} </td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

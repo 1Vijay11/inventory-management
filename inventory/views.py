@@ -21,6 +21,13 @@ import io  # handle in-memory file operations (e.g., CSV export)
 import json  # parse/generate JSON data
 from django.urls import reverse
 
+@login_required # this will be for changeing the base url redirect depending if theres a market - if no market then redirect to normal inventory page if market then go to current market fro easy sale tracking while current market active
+def root_redirect(request):
+    active = Market.objects.filter(user=request.user, is_active=True).first()
+    if active:
+        return redirect('market_detail', market_id=active.id)
+    return redirect('home_page')
+
 @login_required
 def home_page(request):
     #|||||||||||||| Defining tables ||||||||||||||

@@ -53,16 +53,45 @@
                         </svg>
                         Add Products
                     </a>
-
-                    <a href="{% url 'market_dashboard' %}"
-                       class="nav-link-item {% if url_name == 'market_dashboard' or url_name == 'market_start' or url_name == 'market_detail' or url_name == 'market_end' or url_name == 'sale_new' or url_name == 'sale_edit' %}is-active{% endif %}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M3 9l1-4h16l1 4M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9zM9 13h6"
-                                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Market
-                    </a>
-
+<a href="{% url 'market_dashboard' %}"
+   class="nav-link-item {% if url_name == 'market_dashboard' or url_name == 'market_start' %}is-active{% endif %}">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M3 9l1-4h16l1 4M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9zM9 13h6"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Market
+</a>
+{% if nav_active_market %}
+<div class="dropdown nav-live">
+    <button class="nav-live__pill {% if url_name == 'market_detail' or url_name == 'market_end' or url_name == 'sale_new' or url_name == 'sale_edit' %}is-active{% endif %}"
+            data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="md-live-dot"></span>
+        <span class="nav-live__name">{{ nav_active_market.name }}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end nav-user-menu">
+        <li class="nav-user-menu__header">
+            <span class="nav-user-menu__name">{{ nav_active_market.name }}</span>
+            <span class="nav-user-menu__email">Active market session</span>
+        </li>
+        <li><hr class="dropdown-divider nav-user-divider"></li>
+        <li>
+            <a href="{% url 'market_detail' nav_active_market.id %}" class="nav-live__item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 9l1-4h16l1 4M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                Go to Market
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sale_new' %}" class="nav-live__item nav-live__item--accent">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Add Sale
+            </a>
+        </li>
+    </ul>
+</div>
+{% endif %}
                     {% comment %} FUTURE: drop new links in here — the bar wraps, nothing breaks.
                     <a href="#" class="nav-link-item">Analytics</a>
                     {% endcomment %}
@@ -154,6 +183,18 @@
                     </svg>
                     Market
                 </a>
+                {% if nav_active_market %}
+                <a href="{% url 'market_detail' nav_active_market.id %}" class="nav-link-item nav-link-item--live">
+                    <span class="md-live-dot"></span>
+                    Current Market
+                </a>
+                {% endif %}
+                {% if nav_active_market %}
+                <a href="{% url 'sale_new' %}" class="nav-drawer__link nav-drawer__link--live">
+                    <span class="md-live-dot"></span>
+                    Add Sale — {{ nav_active_market.name }}
+                </a>
+                {% endif %}
 
                 {% comment %} FUTURE links go here too {% endcomment %}
 

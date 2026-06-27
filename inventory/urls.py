@@ -2,13 +2,15 @@ from django.urls import path
 from .views import (
     home_page, create, product_edit, change_stock, export_products_csv, edit_category, edit_subcategory,sale_edit,
     signup, market_dashboard, market_start, market_end,market_detail,
-    sale_new, sale_add_item, sale_remove_item, sale_complete
+    sale_new, sale_add_item, sale_remove_item, sale_complete, root_redirect,
 )
 from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
-    path("", home_page, name="home_page"),
+    # we coonect this to the Root_redirect view to determin if we should be redirected to the current market when launch or inventory page on launch
+    path("", root_redirect, name="root"),
+    path("inventory/", home_page, name="home_page"), # still called hoem page however may not always direct here 
     path("add/", create, name="product_add"),
     path("edit/<int:sku>/", product_edit, name="product_edit"),
     path("change_stock/<int:sku>/", change_stock, name="change_stock"),

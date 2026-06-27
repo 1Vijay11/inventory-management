@@ -162,7 +162,7 @@ class Sale(models.Model):
     discount_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     tip_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=8, decimal_places=2)
-    customer_type = models.CharField(max_length=15, choices=CUSTOMER_CHOICES, default='adult')
+    customer_type = models.CharField(max_length=15, choices=CUSTOMER_CHOICES, default='young_adult')
     def __str__(self):
         return f"Sale #{self.id} — {self.market.name} (${self.total})"
 
