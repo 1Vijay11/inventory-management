@@ -157,43 +157,152 @@
         </div>
     </div>
     {% endif %}
-<!-- ================== W H A T S    S E L L I N G +======== -->
- 
-        <div class="panel whats-selling">
-            <div class="panel__head">
-                <div>
-                    <h3 class="panel__title">What's Selling</h3>
-                    <p class="selling-sub">Top products by unit volume</p>
-                </div>
-                <!-- FUTURE FEATURE: dedicated analytics view -->
-                <button type="button" class="btn-mm btn-mm--ghost btn-mm--sm" disabled title="Coming soon">View Analytics</button>
-            </div>
-            <div class="panel__body">
-                {% if items_sold %}
-                    {% with max_qty=items_sold.0.total_qty %}
-                    <div class="selling-list">
-                        {% for item in items_sold|slice:":10" %}
-                        <div class="selling-row">
-                            <div class="selling-rank">{{ forloop.counter }}</div>
-                            <div class="selling-main">
-                                <div class="selling-top">
-                                    <span class="selling-name">{{ item.product_name_snapshot }}</span>
-                                    <span class="selling-sold">{{ item.total_qty }} sold</span>
-                                </div>
-                                <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
-                            </div>
+<!-- ================== W H A T S    S E L L I N G ================== -->
+
+<div class="panel whats-selling">
+    <div class="panel__head">
+        <div>
+            <h3 class="panel__title">What's Selling</h3>
+            <p class="selling-sub">Top products, three ways</p>
+        </div>
+        <div class="stabs-nav">
+            <button type="button" class="stab is-active" data-stab="qty">Quantity</button>
+            <button type="button" class="stab" data-stab="revenue">Revenue</button>
+            <button type="button" class="stab" data-stab="percent">% Sold</button>
+        </div>
+    </div>
+
+    <div class="panel__body">
+<!-- ── View 1: by quantity sold ── -->
+<div class="stab-panel is-active" data-stab-panel="qty">
+    {% if top_products_grouped_by_qty %}
+        {% with max_qty=top_products_grouped_by_qty.0.total_qty %}
+        <div class="selling-list">
+            {% for item in top_products_grouped_by_qty %}
+                {% if item.type == 'subcategory' %}
+                <div class="selling-row selling-row--group" data-group-toggle="qty-{{ item.sku }}">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name ">
+                                        <span class="selling-chevron">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                    {{ item.name }}
+                            </span>
+                            <span class="selling-sold">{{ item.total_qty }} sold</span>
                         </div>
-                        {% endfor %}
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
                     </div>
-                    {% endwith %}
+                </div>
+                    {% for child in item.children %}
+                    <div class="selling-row selling-row--child" data-group-child="qty-{{ item.sku }}" hidden>
+                        <div class="selling-main">
+                            <div class="selling-top">
+                                <span class="selling-name product-link product-link--indented">{{ child.name }}</span>
+                                <span class="selling-sold">{{ child.total_qty }} sold</span>
+                            </div>
+                            <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio child.total_qty max_qty 100 %}%"></div></div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 {% else %}
-                    <div class="mm-empty">No products sold yet.</div>
+                <div class="selling-row">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name ">{{ item.name }}</span>
+                            <span class="selling-sold">{{ item.total_qty }} sold</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
+                    </div>
+                </div>
                 {% endif %}
-            </div>
+            {% endfor %}
+        </div>
+        {% endwith %}
+    {% else %}
+        <div class="mm-empty">No products sold yet.</div>
+    {% endif %}
+</div>
+
+<!-- ── View 2: by revenue ── -->
+<div class="stab-panel" data-stab-panel="revenue">
+    {% if top_products_grouped_by_revenue %}
+        {% with max_revenue=top_products_grouped_by_revenue.0.total_revenue %}
+        <div class="selling-list">
+            {% for item in top_products_grouped_by_revenue %}
+                {% if item.type == 'subcategory' %}
+                <div class="selling-row selling-row--group" data-group-toggle="rev-{{ item.sku }}">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">
+                                <svg class="selling-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                {{ item.name }}
+                            </span>
+                            <span class="selling-sold">${{ item.total_revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_revenue max_revenue 100 %}%"></div></div>
+                    </div>
+                </div>
+                    {% for child in item.children %}
+                    <div class="selling-row selling-row--child" data-group-child="rev-{{ item.sku }}" hidden>
+                        <div class="selling-rank selling-rank--empty"></div>
+                        <div class="selling-main">
+                            <div class="selling-top">
+                                <span class="selling-name">{{ child.name }}</span>
+                                <span class="selling-sold">${{ child.total_revenue|floatformat:2 }}</span>
+                            </div>
+                            <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio child.total_revenue max_revenue 100 %}%"></div></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="selling-row">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">{{ item.name }}</span>
+                            <span class="selling-sold">${{ item.total_revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_revenue max_revenue 100 %}%"></div></div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endwith %}
+    {% else %}
+        <div class="mm-empty">No products sold yet.</div>
+    {% endif %}
+</div>
+        <!-- ── View 3: by percentage sold ── -->
+        <div class="stab-panel" data-stab-panel="percent">
+            {% if top_products_by_percentage_sold %}
+                <div class="selling-list">
+                    {% for item in top_products_by_percentage_sold %}
+                    <div class="selling-row">
+                        <div class="selling-rank">{{ forloop.counter }}</div>
+                        <div class="selling-main">
+                            <div class="selling-top">
+                                <span class="selling-name">{{ item.product_name }}</span>
+                                <span class="selling-sold">{{ item.percentage_sold }}% ({{ item.qty_sold }}/{{ item.starting_stock }})</span>
+                            </div>
+                            <div class="selling-bar"><div class="selling-fill" style="--bar: {{ item.percentage_sold }}%"></div></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="mm-empty">No stock snapshots yet.</div>
+            {% endif %}
         </div>
 
-
-
+    </div>
+</div>
     <!-- ════════════════  CATEGORY + COLOUR  ════════════════ -->
     <div class="dash-grid">
 
@@ -232,90 +341,149 @@
         </div>
     </div>
 
-    <!-- ════════════════  RECORDS (toggle: Inventory Sold / Sale History)  ════════════════ -->
-    <div class="panel">
-        <div class="rtabs-head">
-            <div class="rtabs-nav">
-                <button type="button" class="rtab is-active" data-rtab="history">Sale History</button>
-                <button type="button" class="rtab " data-rtab="inventory">Inventory Sold</button>
-            </div>
-            <div class="rtabs-search toolbar">
-                <span class="toolbar__search">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    <input type="text" id="recordsSearch" placeholder="Search records…">
-                </span>
-            </div>
-        </div>
+<!-- ════════════════  RECORDS (toggle: Inventory Sold / Sale History)  ════════════════ -->
+<div class="panel">
+    <div class="rtabs-head {% if search_target == 'inventory' %}showing-inventory{% else %}showing-history{% endif %}">
+        <ul class="nav rtabs-nav" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button type="button" class="rtab {% if search_target != 'inventory' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#rtab-history" role="tab">Sale History</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button" class="rtab {% if search_target == 'inventory' %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#rtab-inventory" role="tab">Inventory Sold</button>
+            </li>
+        </ul>
 
-        <!-- Inventory Sold -->
-        <div class="rtab-panel " data-rtab-panel="inventory">
-            <div class="panel__body--flush">
-                {% if items_sold %}
-                <div class="table-scroll">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>Product Name</th><th class="d-none">SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Revenue</th></tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items_sold %}
-                            <tr data-search="{{ item.product_name_snapshot }} {{ item.product_sku_snapshot }}">
-                                <td>{{ item.product_name_snapshot }}</td>
-                                <td class="d-none"><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
-                                <td class="num">${{ item.unit_price_snapshot }}</td>
-                                <td class="num">{{ item.total_qty }}</td>
-                                <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ item.total_revenue }}</span></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}<div class="mm-empty">No items sold yet.</div>{% endif %}
-            </div>
-        </div>
+        <!-- Search box for Sale History — only visible while that tab is active -->
+        <form method="get" class="rtabs-search toolbar rtabs-search--history">
+            <input type="hidden" name="target" value="history">
+            <input type="hidden" name="sale_sort" value="{{ sale_sort }}">
+            <span class="toolbar__search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" name="q" value="{% if search_target == 'history' %}{{ search_query }}{% endif %}" placeholder="Search time, payment…">
+            </span>
+            {% if search_query and search_target == 'history' %}
+                <a href="{% url 'market_detail' market.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Clear</a>
+            {% endif %}
+        </form>
+
+        <!-- Search box for Inventory Sold — only visible while that tab is active -->
+        <form method="get" class="rtabs-search toolbar rtabs-search--inventory">
+            <input type="hidden" name="target" value="inventory">
+            <span class="toolbar__search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" name="q" value="{% if search_target == 'inventory' %}{{ search_query }}{% endif %}" placeholder="Search product or SKU…">
+            </span>
+            {% if search_query and search_target == 'inventory' %}
+                <a href="{% url 'market_detail' market.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="tab-content">
 
         <!-- Sale History -->
-        <div class="rtab-panel is-active" data-rtab-panel="history">
+        <div class="tab-pane fade {% if search_target != 'inventory' %}show active{% endif %}" id="rtab-history" role="tabpanel">
             <div class="panel__body--flush">
-                {% if sales %}
+                {% if filtered_sales %}
                 <div class="table-scroll">
                     <table class="data-table">
-                        <thead>
+                        <thead class="table-head">
                             <tr>
-                                <th>Time</th>
-                                <th class="">Payment</th>
-                                <th class="num">Subtotal</th>
-                                <th class="num d-none d-sm-table-cell">Discount</th>
-                                <th class="num d-none d-sm-table-cell">Tip</th>
-                                <th class="num">Total</th>
-                                <th></th></tr>
+                                <th>
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Time
+                                            {% if sale_sort == "created_at" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-created_at" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=created_at{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> Earliest first</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-created_at{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> Latest first</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Payment
+                                            {% if sale_sort == "payment_method" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-payment_method" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=payment_method{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> A–Z</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-payment_method{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> Z–A</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th class="num">
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Subtotal
+                                            {% if sale_sort == "subtotal" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-subtotal" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=subtotal{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> Low–High</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-subtotal{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> High–Low</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th class="num d-none d-sm-table-cell">
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Discount
+                                            {% if sale_sort == "discount_amount" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-discount_amount" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=discount_amount{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> Low–High</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-discount_amount{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> High–Low</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th class="num d-none d-sm-table-cell">
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Tip
+                                            {% if sale_sort == "tip_amount" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-tip_amount" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=tip_amount{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> Low–High</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-tip_amount{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> High–Low</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th class="num">
+                                    <div class="dropdown">
+                                        <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
+                                            Total
+                                            {% if sale_sort == "total" %}<span class="th-sort-indicator">↑</span>{% elif sale_sort == "-total" %}<span class="th-sort-indicator">↓</span>{% endif %}
+                                        </button>
+                                        <ul class="dropdown-menu th-dropdown-menu">
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=total{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↑</span> Low–High</a></li>
+                                            <li><a class="dropdown-item th-dropdown-item" href="?sale_sort=-total{% if base_query %}&{{ base_query }}{% endif %}"><span class="th-dropdown-icon">↓</span> High–Low</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody>
-                            {% for sale in sales %}
-                            <tr data-search="#{{ sale.id }} {{ sale.get_payment_method_display }}" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">
-                                    <td>{{ sale.created_at|date:"g:i A" }}</td>
-                                    <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
-                                    <td class="num">${{ sale.subtotal }}</td>
-                                    
-                                    <td class="num d-none d-sm-table-cell">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                    <td class="num d-none d-sm-table-cell">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                    <td class="num d-none d-sm-table-cell"><strong>${{ sale.total }}</strong></td>
-                                    
-                                    <td class="d-table-cell d-sm-none num">
-                                        <strong>${{ sale.total }}</strong>
-                                        {% if sale.discount_amount > 0 %}
-                                        <div><span class="money-neg">-${{ sale.discount_amount }}</span></div>
-                                        {% endif %}
-                                        {% if sale.tip_amount > 0 %}
-                                        <div><span class="money-pos">+${{ sale.tip_amount }}</span></div>
-                                        {% endif %}
-                                    </td>
-                                    
-                                    <td class="num">
-                                        <button class="d-none d-sm-table-cell btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
-                                        {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
-                                    </td>
-                                </tr>
-                            <tr class="collapse" id="sale-items-{{ sale.id }}" data-detail>
+                            {% for sale in filtered_sales %}
+                            <tr data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">
+                                <td>{{ sale.created_at|date:"g:i A" }}</td>
+                                <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
+                                <td class="num">${{ sale.subtotal }}</td>
+                                <td class="num d-none d-sm-table-cell">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num d-none d-sm-table-cell">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num d-none d-sm-table-cell"><strong>${{ sale.total }}</strong></td>
+                                <td class="d-table-cell d-sm-none num">
+                                    <strong>${{ sale.total }}</strong>
+                                    {% if sale.discount_amount > 0 %}<div><span class="money-neg">-${{ sale.discount_amount }}</span></div>{% endif %}
+                                    {% if sale.tip_amount > 0 %}<div><span class="money-pos">+${{ sale.tip_amount }}</span></div>{% endif %}
+                                </td>
+                                <td class="num">
+                                    <button class="d-none d-sm-table-cell btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
+                                    {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="sale-items-{{ sale.id }}">
                                 <td class="sale-detail-cell" colspan="8">
                                     <div class="sale-detail-inner">
                                         <table class="data-table">
@@ -327,7 +495,7 @@
                                                     <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
                                                     <td class="num">${{ item.unit_price_snapshot }}</td>
                                                     <td class="num">{{ item.quantity }}</td>
-                                                    <td class="num">${{ item.line_total }} </td>
+                                                    <td class="num">${{ item.line_total }}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
@@ -339,11 +507,72 @@
                         </tbody>
                     </table>
                 </div>
-                {% else %}<div class="mm-empty">No sales recorded yet.</div>{% endif %}
+                {% else %}
+                    <div class="mm-empty">{% if search_query and search_target == 'history' %}No sales match "{{ search_query }}".{% else %}No sales recorded yet.{% endif %}</div>
+                {% endif %}
             </div>
         </div>
+<!-- Inventory Sold -->
+<div class="tab-pane fade {% if search_target == 'inventory' %}show active{% endif %}" id="rtab-inventory" role="tabpanel">
+    <div class="panel__body--flush">
+        {% if filtered_combined_items_sold %}
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Product Name</th><th class="d-none">SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Revenue</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in filtered_combined_items_sold %}
+                        {% if item.type == 'product' %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td class="d-none"><span class="sku-badge">{{ item.sku }}</span></td>
+                                <td class="num">${{ item.unit_price }}</td>
+                                <td class="num">{{ item.total_qty }}</td>
+                                <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ item.total_revenue|floatformat:2 }}</span></td>
+                            </tr>
+                        {% elif item.type == 'subcategory' %}
+                            <tr class="subcategory-row" style="cursor: pointer;"
+                                data-bs-toggle="collapse" data-bs-target=".collapse-inv-{{ item.sku }}"
+                                aria-expanded="false">
+                                <td>
+                                    <div class="subcategory-label">
+                                        <span class="subcategory-chevron">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                        <span class="subcategory-name">{{ item.name }}</span>
+                                    </div>
+                                </td>
+                                <td class="d-none"></td>
+                                <td class="num">${{ item.min_price }}</td>
+                                <td class="num">{{ item.total_qty }}</td>
+                                <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ item.total_revenue|floatformat:2 }}</span></td>
+                            </tr>
+                            {% for child in item.children %}
+                            <tr class="collapse collapse-inv-{{ item.sku }} subcategory-child">
+                                <td>
+                                    <span class="product-link product-link--indented">{{ child.name }}</span>
+                                </td>
+                                <td class="d-none"><span class="sku-badge">{{ child.sku }}</span></td>
+                                <td class="num">${{ child.unit_price }}</td>
+                                <td class="num">{{ child.total_qty }}</td>
+                                <td class="num"><span style="color:var(--accent-dark);font-weight:700;">${{ child.total_revenue|floatformat:2 }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <div class="mm-empty">{% if search_query and search_target == 'inventory' %}No items match "{{ search_query }}".{% else %}No items sold yet.{% endif %}</div>
+        {% endif %}
     </div>
-
+</div>
+    </div>
+</div>
     <!-- ════════════════  NOTES + EXPENSES  ════════════════ -->
     <div class="dash-grid">
 
@@ -600,21 +829,6 @@
         });
     });
 
-    // ── Records: live search over the active panel ──
-    function filterRecords(q) {
-        q = (q || '').trim().toLowerCase();
-        var active = document.querySelector('.rtab-panel.is-active');
-        if (!active) return;
-        active.querySelectorAll('[data-search]').forEach(function (row) {
-            var show = !q || row.getAttribute('data-search').toLowerCase().indexOf(q) !== -1;
-            row.style.display = show ? '' : 'none';
-            var next = row.nextElementSibling;
-            if (next && next.hasAttribute('data-detail') && !show) next.style.display = 'none';
-        });
-    }
-    var searchEl = document.getElementById('recordsSearch');
-    if (searchEl) searchEl.addEventListener('input', function (e) { filterRecords(e.target.value); });
-
     // ── Trigger bar-fill animations after first paint ──
     requestAnimationFrame(function () {
         requestAnimationFrame(function () { document.querySelector('.mm-page').classList.add('is-loaded'); });
@@ -631,5 +845,38 @@
         }, 5000);
     });
 })();
+
+// ── What's Selling: view switch ──
+var stabs = document.querySelectorAll('.stab');
+stabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+        var key = tab.getAttribute('data-stab');
+        stabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+        document.querySelectorAll('[data-stab-panel]').forEach(function (p) {
+            p.classList.toggle('is-active', p.getAttribute('data-stab-panel') === key);
+        });
+    });
+});
+
+// ── What's Selling: expand/collapse subcategory groups ──
+document.querySelectorAll('[data-group-toggle]').forEach(function (row) {
+    row.addEventListener('click', function () {
+        var key = row.getAttribute('data-group-toggle');
+        row.classList.toggle('is-expanded');
+        document.querySelectorAll('[data-group-child="' + key + '"]').forEach(function (child) {
+            child.hidden = !child.hidden;
+        });
+    });
+});
+
+document.querySelectorAll('.rtab').forEach(function (tab) {
+    tab.addEventListener('shown.bs.tab', function (e) {
+        var head = e.target.closest('.rtabs-head');
+        if (!head) return;
+        var target = e.target.getAttribute('data-bs-target'); // "#rtab-history" or "#rtab-inventory"
+        head.classList.toggle('showing-history', target === '#rtab-history');
+        head.classList.toggle('showing-inventory', target === '#rtab-inventory');
+    });
+});
 </script>
 {% endblock %}

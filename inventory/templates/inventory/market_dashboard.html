@@ -118,8 +118,7 @@
                 {% for row in customer_breakdown %}
                 <div class="audience">
                     <div class="audience__eyebrow ">
-                        {% if forloop.first %}Primary Audience{% elif forloop.counter == 2 %}Secondary{% else
-                        %}Audience{% endif %}
+                        {% if forloop.first %}Primary Audience{% elif forloop.counter == 2 %}Secondary{% else %}Audience{% endif %}
                     </div>
                     <div class="audience__row">
                         <span class="audience__name">{{ row.customer_type|title }} ({{ row.count }})</span>
@@ -136,48 +135,154 @@
                 {% endif %}
             </div>
         </div>
-
-        <!-- Best Sellers -->
-        <div class="panel gc-6 whats-selling-main ">
-            <div class="panel__head">
-                <div>
-                    <h3 class="panel__title">Best Sellers</h3>
-                    <p class="selling-sub mt-1">All-time · ranked by units sold</p>
+<!-- Best Sellers -->
+<div class="panel gc-6 whats-selling-main">
+    <div class="panel__head">
+        <div>
+            <h3 class="panel__title">Best Sellers</h3>
+            <p class="selling-sub mt-1">Across Every Past Market</p>
+        </div>
+        <div class="stabs-nav">
+            <button type="button" class="stab is-active" data-stab="revenue">Revenue</button>
+            <button type="button" class="stab" data-stab="qty">Quantity</button>
+            <button type="button" class="stab" data-stab="percent">% Sold</button>
+        </div>
+    </div>
+    <div class="panel__body">
+<!-- ── View 1: by quantity sold ── -->
+<div class="stab-panel is-active" data-stab-panel="qty">
+    {% if best_sellers_grouped_by_qty %}
+        {% with max_qty=best_sellers_grouped_by_qty.0.total_qty %}
+        <div class="selling-list bs-scroll-list-dashboard">
+            {% for item in best_sellers_grouped_by_qty %}
+                {% if item.type == 'subcategory' %}
+                <div class="selling-row selling-row--group" data-group-toggle="bs-qty-{{ item.sku }}">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">
+                                <span class="selling-chevron">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                {{ item.name }}
+                            </span>
+                            <span class="selling-sold">{{ item.total_qty }} sold · ${{ item.total_revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
+                    </div>
                 </div>
-                {% if best_sellers|length > 5 %}
-                {% endif %}
-            </div>
-            <div class="panel__body">
-                {% if best_sellers %}
-                {% with max_qty=best_sellers.0.total_sold|add:0 %}
-                <div class="selling-list bs-scroll-list-dashboard">
-                    <!-- Top 5 always visible -->
-                    {% for item in best_sellers %}
-                    <div class="selling-row">
-                        <div class="selling-rank">{{ forloop.counter }}</div>
+                    {% for child in item.children %}
+                    <div class="selling-row selling-row--child" data-group-child="bs-qty-{{ item.sku }}" hidden>
                         <div class="selling-main">
                             <div class="selling-top">
-                                <span class="selling-name">{{ item.product_name_snapshot }}</span>
-                                <span class="selling-sold">{{ item.total_sold }} sold · ${{ item.total_revenue }}</span>
+                                <span class="selling-name product-link product-link--indented">{{ child.name }}</span>
+                                <span class="selling-sold">{{ child.total_qty }} sold · ${{ child.total_revenue|floatformat:2 }}</span>
                             </div>
-                            <div class="selling-bar">
-                                <div class="selling-fill" style="--bar: {% widthratio item.total_sold max_qty 100 %}%">
-                                </div>
-                            </div>
+                            <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio child.total_qty max_qty 100 %}%"></div></div>
                         </div>
                     </div>
                     {% endfor %}
-
-                </div>
-                {% endwith %}
                 {% else %}
-                <div class="mm-empty">No sales data yet.</div>
+                <div class="selling-row">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">{{ item.name }}</span>
+                            <span class="selling-sold">{{ item.total_qty }} sold · ${{ item.total_revenue|floatformat:2 }}</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_qty max_qty 100 %}%"></div></div>
+                    </div>
+                </div>
                 {% endif %}
-            </div>
+            {% endfor %}
         </div>
+        {% endwith %}
+    {% else %}
+        <div class="mm-empty">No sales data yet.</div>
+    {% endif %}
+</div>
+
+<!-- ── View 2: by revenue ── -->
+<div class="stab-panel" data-stab-panel="revenue">
+    {% if best_sellers_grouped_by_revenue %}
+        {% with max_revenue=best_sellers_grouped_by_revenue.0.total_revenue %}
+        <div class="selling-list bs-scroll-list-dashboard">
+            {% for item in best_sellers_grouped_by_revenue %}
+                {% if item.type == 'subcategory' %}
+                <div class="selling-row selling-row--group" data-group-toggle="bs-rev-{{ item.sku }}">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">
+                                <span class="selling-chevron">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                {{ item.name }}
+                            </span>
+                            <span class="selling-sold">${{ item.total_revenue|floatformat:2 }} · {{ item.total_qty }} sold</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_revenue max_revenue 100 %}%"></div></div>
+                    </div>
+                </div>
+                    {% for child in item.children %}
+                    <div class="selling-row selling-row--child" data-group-child="bs-rev-{{ item.sku }}" hidden>
+                        <div class="selling-main">
+                            <div class="selling-top">
+                                <span class="selling-name product-link product-link--indented">{{ child.name }}</span>
+                                <span class="selling-sold">${{ child.total_revenue|floatformat:2 }} · {{ child.total_qty }} sold</span>
+                            </div>
+                            <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio child.total_revenue max_revenue 100 %}%"></div></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="selling-row">
+                    <div class="selling-rank">{{ forloop.counter }}</div>
+                    <div class="selling-main">
+                        <div class="selling-top">
+                            <span class="selling-name">{{ item.name }}</span>
+                            <span class="selling-sold">${{ item.total_revenue|floatformat:2 }} · {{ item.total_qty }} sold</span>
+                        </div>
+                        <div class="selling-bar"><div class="selling-fill" style="--bar: {% widthratio item.total_revenue max_revenue 100 %}%"></div></div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endwith %}
+    {% else %}
+        <div class="mm-empty">No sales data yet.</div>
+    {% endif %}
+</div>
+<!-- ── View 3: by percentage sold (averaged per market) ── -->
+<div class="stab-panel" data-stab-panel="percent">
+    {% if best_sellers_by_percentage_sold %}
+        <div class="selling-list bs-scroll-list-dashboard">
+            {% for item in best_sellers_by_percentage_sold %}
+            <div class="selling-row">
+                <div class="selling-rank">{{ forloop.counter }}</div>
+                <div class="selling-main">
+                    <div class="selling-top">
+                        <span class="selling-name">{{ item.product_name }}</span>
+                        <span class="selling-sold">{{ item.percentage_sold }}% · {{ item.avg_qty_sold }}/{{ item.avg_stock_made }}</span>
+                    </div>
+                    <div class="selling-bar"><div class="selling-fill" style="--bar: {{ item.percentage_sold }}%"></div></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="mm-empty">No stock snapshots yet.</div>
+    {% endif %}
+</div>
 
     </div>
-
+</div>
+    </div>
     <!-- ════════════════  CATEGORY + COLOUR  ════════════════ -->
     <div class="dash-grid">
 
@@ -448,6 +553,28 @@
         });
 
     })();
+        // ── Best Sellers: view switch ──
+    var stabs = document.querySelectorAll('.stab');
+    stabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var key = tab.getAttribute('data-stab');
+            stabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+            document.querySelectorAll('[data-stab-panel]').forEach(function (p) {
+                p.classList.toggle('is-active', p.getAttribute('data-stab-panel') === key);
+            });
+        });
+    });
+
+    // ── Best Sellers: expand/collapse subcategory groups ──
+document.querySelectorAll('[data-group-toggle]').forEach(function (row) {
+    row.addEventListener('click', function () {
+        var key = row.getAttribute('data-group-toggle');
+        row.classList.toggle('is-expanded');
+        document.querySelectorAll('[data-group-child="' + key + '"]').forEach(function (child) {
+            child.hidden = !child.hidden;
+        });
+    });
+});
 </script>
 
 {% endblock %}

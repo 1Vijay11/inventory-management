@@ -2095,7 +2095,7 @@ login Page
 }
 .panel__title {
     font-size: 0.95rem; font-weight: 700; color: var(--text-dark);
-    margin: 0; display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;
 }
 .panel__title svg { color: var(--accent); }
 .panel__body { padding: 1.25rem; }
@@ -2472,7 +2472,18 @@ login Page
     .perf-grid .whats-selling,
     .perf-grid .whats-selling-main { grid-column: 1; grid-row: auto; max-height: none; }
 }
-
+/* ── What's Selling: tab toggle (separate from .rtab so it doesn't share its JS) ── */
+.stabs-nav { display: flex; gap: 1.5rem; }
+.stab {
+    padding: 0.65rem 0; background: none; border: none; cursor: pointer;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color .15s ease, border-color .15s ease;
+}
+.stab:hover { color: var(--text-mid); }
+.stab.is-active { color: var(--accent-dark); border-bottom-color: var(--accent); }
+.stab-panel { display: none; }
+.stab-panel.is-active { display: block; }
 /* Payment stat blocks beside the doughnut */
 .pay-stat + .pay-stat { margin-top: 1rem; }
 .pay-stat__top {
@@ -2557,12 +2568,18 @@ login Page
     transition: color .15s ease, border-color .15s ease;
 }
 .rtab:hover { color: var(--text-mid); }
-.rtab.is-active { color: var(--accent-dark); border-bottom-color: var(--accent); }
-.rtab-panel { display: none; }
-.rtab-panel.is-active { display: block; }
-.rtabs-search { margin-bottom: 0.5rem; }
+.rtab.active { color: var(--accent-dark); border-bottom-color: var(--accent); }
+.rtabs-search {
+    display: none;
+    margin-bottom: 0.5rem;
+}
+.rtabs-head.showing-history .rtabs-search--history,
+.rtabs-head.showing-inventory .rtabs-search--inventory {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 .rtabs-search input { min-width: 220px; }
-.rtabs-search input:disabled { display: none; }
 
 /* ── Notes + Expenses ── */
 .expense-item {
@@ -2599,6 +2616,21 @@ login Page
 .finalize__title { font-size: 1.05rem; font-weight: 700; color: var(--accent-dark); margin: 0 0 0.15rem; }
 .finalize__text { font-size: 0.82rem; color: var(--text-subtle); margin: 0; max-width: 52ch; }
 
+.selling-row--group { cursor: pointer; }
+.selling-row--child {
+    margin-left: 2rem;
+    padding-left: 2rem;
+}
+.selling-row--child .selling-fill {
+    opacity: 0.5;
+}
+.selling-chevron {
+     margin-right: 0.35rem; 
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent);
+    transition: transform 0.2s ease; }
+.selling-row--group.is-expanded .selling-chevron { transform: rotate(90deg); }
 /* =============================================================================
    §  SALE NEW PAGE  (sale_new.html)
    Two-column layout: left = search + cart, right = checkout panel.

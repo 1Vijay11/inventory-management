@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.shortcuts import render, redirect  # render templates, redirect users, fetch objects safely
 from django.http import HttpResponse, JsonResponse  # standard and JSON responses
 from django.contrib.auth import login  # log users in after signup/login
@@ -37,9 +39,12 @@ def home_page(request):
 
 
     #|||||||||||||| search logic ||||||||||||||
-    search = request.GET.get('search', '')
-    if search:
-        products = products.filter(Q(name__icontains=search) | Q(sku__contains=search) |     Q(subCategory__name__icontains=search)) # __icontains is a looking for a case insensitive partial max
+    searches = request.GET.get('search', '').strip().split()
+    
+
+    if searches:
+        for search in searches: 
+            products = products.filter(Q(name__icontains=search) | Q(sku__contains=search) |  Q(subCategory__name__icontains=search)) # __icontains is a looking for a case insensitive partial max
         # Q is need for any clauses that require multiple arguments -> use of OR
 
     #||||||||||||||   category sort Logic   ||||||||||||||
@@ -57,7 +62,6 @@ def home_page(request):
     else:
         show_zero = True    
     show_discontinued = request.GET.get('show_discontinued', '') == 'show_discontinued'
-
 
     # ---- State filters (out of stock / discontinued) from dropdown ----
     state_filters = request.GET.getlist('filter_state', [])
@@ -645,12 +649,15 @@ def sale_new(request):
     )
 
     search = request.GET.get('search', '')
+    searches = search.strip().split()
     search_results = []
-    if search:
+    if len(searches) > 0:
         search_results = Product.objects.filter(
             user=request.user,
             discontinued=False,
-        ).filter(Q(name__icontains=search) | Q(sku__icontains=search))
+        )
+        for search_word in searches:
+            search_results = search_results.filter(Q(name__icontains=search_word) | Q(sku__icontains=search_word) |  Q(subCategory__name__icontains=search_word))
 
     cart_items = cart.cart_items.select_related('product').all()
     sale_form = SaleForm()
@@ -663,8 +670,6 @@ def sale_new(request):
         'search': search,
         'sale_form': sale_form,
     })
-
-
 @login_required
 def sale_add_item(request, sku):
     if request.method != 'POST':
@@ -685,8 +690,6 @@ def sale_add_item(request, sku):
         cart_item.save()
 
     return redirect(f"{reverse('sale_new')}?search={request.POST.get('search', '')}")
-
-
 @login_required
 def sale_remove_item(request, cart_item_id):
     if request.method != 'POST':
@@ -759,8 +762,11 @@ def sale_complete(request):
 @login_required
 def market_detail(request, market_id):
     market = get_object_or_404(Market, id=market_id, user=request.user)
+    # Step 2: get all sales for this market, newest first, pre-loading their items
     sales = market.sales.prefetch_related('items').order_by('-created_at')
+    # Step 3: get all expenses logged for this market
     expenses = market.expenses.all()
+    # Step 4: set up a blank expense form for the page (gets replaced below if invalid)
     expense_form = MarketExpenseForm()
 
     if request.method == 'POST':
@@ -790,97 +796,406 @@ def market_detail(request, market_id):
             messages.success(request, "Expense removed.")
             return redirect('market_detail', market_id=market_id)
 
-    # Stats
+    # ── Overall totals ──
+    # Step 1: total revenue across all sales in this market
     total_revenue = sales.aggregate(t=Sum('total'))['t'] or 0
+    # Step 2: total tips collected
     total_tips = sales.aggregate(t=Sum('tip_amount'))['t'] or 0
+    # Step 3: total discounts given
     total_discounts = sales.aggregate(t=Sum('discount_amount'))['t'] or 0
+    # Step 4: how many separate sales happened
     total_transactions = sales.count()
+    # Step 5: revenue that came in as cash
     cash_total = sales.filter(payment_method='cash').aggregate(t=Sum('total'))['t'] or 0
+    # Step 6: revenue that came in as card
     card_total = sales.filter(payment_method='card').aggregate(t=Sum('total'))['t'] or 0
+    # Step 7: average amount per sale (guard against divide-by-zero if there were no sales)
     avg_sale = round(float(total_revenue) / total_transactions, 2) if total_transactions else 0
+    # Step 8: total money spent on expenses for this market
     total_expenses = expenses.aggregate(t=Sum('amount'))['t'] or 0
+    # Step 9: revenue minus expenses
     total_profit = round(float(total_revenue) - float(total_expenses), 2)
-# Items sold
-    total_items_sold = SaleItem.objects.filter(
-        sale__market=market
-    ).aggregate(t=Sum('quantity'))['t'] or 0
 
-    # All items sold list
-    items_sold = SaleItem.objects.filter(
-        sale__market=market
-    ).values('product_name_snapshot', 'product_sku_snapshot', 'unit_price_snapshot').annotate(
-        total_qty=Sum('quantity'),
-        total_revenue=Sum('line_total')
-    ).order_by('-total_qty')
+    # ── Items sold (total count) ──
+    # Step 1: get every sale item that belongs to a sale in this market
+    market_sale_items = SaleItem.objects.filter(sale__market=market)
+    # Step 2: add up the quantity column across all of them
+    total_items_sold = market_sale_items.aggregate(t=Sum('quantity'))['t'] or 0
 
-    # Customer type breakdown
-    from django.db.models import Count
-    customer_breakdown = sales.values('customer_type').annotate(
-        count=Count('id'),
-        total_spent=Sum('total')
-    ).order_by('-count')
-
-    # Category stats
-    category_stats = Category.objects.filter(
-        user=request.user
-    ).annotate(
-        total_qty=Sum(
-            'products__sale_items__quantity',
-            filter=Q(products__sale_items__sale__market=market)
-        ),
-        total_revenue=Sum(
-            F('products__sale_items__line_total'),
-            filter=Q(products__sale_items__sale__market=market)
+    # ── Items sold (breakdown by product) ──
+    # Step 1: start from the same market sale items
+    # Step 2: group them by product (name/sku/price identify a distinct product)
+    # Step 3: within each group, total the quantity and the revenue
+    # Step 4: order so the best-selling product is first
+    items_sold = (
+        market_sale_items
+        .values('product_name_snapshot', 'product_sku_snapshot', 'unit_price_snapshot') # we take any item that has the same sku name nad price meaning that has to be a unique item
+        .annotate(
+            total_qty=Sum('quantity'),
+            total_revenue=Sum('line_total'),
         )
-    ).filter(total_qty__isnull=False).order_by('-total_qty')
+        .order_by('-total_qty')
+    )
+    # example ouput
+# <QuerySet [ // rreturns list of dictionaty
+#     {
+            # first it sorts by these 3 values
+#         'product_name_snapshot': 'Kirby Luffy', 
+#         'product_sku_snapshot': 41, 
+#         'unit_price_snapshot': Decimal('35.00'), 
+            # then annotate runs and dirives these valeus and appens them to list 
+#         'total_qty': 12, 
+#         'total_revenue': Decimal('420.00')
+#     },
+#     {
+#         'product_name_snapshot': 'Pink Whale', 
+#         'product_sku_snapshot': 20, 
+#         'unit_price_snapshot': Decimal('6.00'), 
+#         'total_qty': 5, 
+#         'total_revenue': Decimal('30.00')
+#     }
+# ]>
+    # ── Customer type breakdown ──
+    # Step 1: group this market's sales by customer_type
+    # Step 2: count how many sales came from each type
+    # Step 3: total how much each type spent
+    # Step 4: order so the most common customer type is first
+    customer_breakdown = (
+        sales
+        .values('customer_type')
+        .annotate(
+            count=Count('id'),
+            total_spent=Sum('total'),
+        )
+        .order_by('-count')
+    )
 
-    # Per hour breakdown
-    from collections import defaultdict
+    # ── Category stats ──
+    # Step 1: start from every category this user owns
+    # Step 2: for each category, only look at sale items from THIS market
+    # Step 3: total the quantity and revenue for that category, in this market
+    # Step 4: drop categories that had no sales at this market
+    # Step 5: order so the best-selling category is first
+
+    #Each caterogry we look and each product that relate to that category then we lloke at which all sales items that reference those products then each sale taht those sale items re in and finally the market that has those - ultiamtly filtering out all 
+    category_stats = (
+        Category.objects
+        .filter(user=request.user)
+        .annotate(
+            total_qty=Sum('products__sale_items__quantity', filter=Q(products__sale_items__sale__market=market)),
+            total_revenue=Sum(F('products__sale_items__line_total'), filter=Q(products__sale_items__sale__market=market)),
+        )
+        .filter(total_qty__isnull=False)
+        .order_by('-total_qty')
+    )
+
+    # ── Per-hour breakdown (used for both the table and the revenue chart) ──
+    # Step 1: set up an empty bucket for each hour, so we don't need to check "does this hour exist yet"
     hourly_stats = defaultdict(lambda: {'revenue': 0, 'items_sold': 0, 'sales': 0})
+    # Step 2: walk through every sale in this market once
     for sale in sales:
+        # Step 2a: figure out which hour bucket this sale belongs to (in local time, not UTC)
         hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
+        # Step 2b: add this sale's revenue and count into that hour's bucket
         hourly_stats[hour]['revenue'] += float(sale.total)
         hourly_stats[hour]['sales'] += 1
+        # Step 2c: add up how many items were part of this sale, into the same bucket
         for item in sale.items.all():
             hourly_stats[hour]['items_sold'] += item.quantity
+    # Step 3: convert back to a plain dict now that we're done adding to it
     hourly_stats = dict(hourly_stats)
 
-    # Colour stats
+    # ── Colour stats ──
     colours = ['pink', 'purple', 'green', 'blue', 'yellow']
     colour_stats = []
     for colour in colours:
-        qty = SaleItem.objects.filter(
+        # Step 1: find sale items in this market whose product name mentions this colour
+        colour_items = SaleItem.objects.filter(
             sale__market=market,
-            product_name_snapshot__icontains=colour
-        ).aggregate(t=Sum('quantity'))['t'] or 0
-        revenue = SaleItem.objects.filter(
-            sale__market=market,
-            product_name_snapshot__icontains=colour
-        ).aggregate(t=Sum('line_total'))['t'] or 0
+            product_name_snapshot__icontains=colour,
+        )
+        # Step 2: total the quantity AND revenue in one query instead of two
+        colour_totals = colour_items.aggregate(qty=Sum('quantity'), revenue=Sum('line_total'))
+        # Step 3: save this colour's totals to the list
         colour_stats.append({
             'colour': colour.title(),
-            'qty': qty,
-            'revenue': revenue,
+            'qty': colour_totals['qty'] or 0,
+            'revenue': colour_totals['revenue'] or 0,
         })
+    # Step 4: order so the most-sold colour is first
     colour_stats = sorted(colour_stats, key=lambda x: x['qty'], reverse=True)
 
-    # Chart 1 — Revenue by hour
-    from collections import defaultdict
-    revenue_by_hour = defaultdict(float)
-    for sale in sales:
-        hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
-        revenue_by_hour[hour] += float(sale.total)
-    revenue_hours = list(revenue_by_hour.keys())
-    revenue_values = list(revenue_by_hour.values())
+    # ── Chart 1 — Revenue by hour ──
+    # Step 1: reuse hourly_stats instead of looping over sales a second time
+    revenue_hours = list(hourly_stats.keys())
+    revenue_values = [bucket['revenue'] for bucket in hourly_stats.values()]
 
-    # Chart 3 — Top products by quantity
-    top_products = SaleItem.objects.filter(
-        sale__market=market
-    ).values('product_name_snapshot').annotate(
-        total_qty=Sum('quantity')
-    ).order_by('-total_qty')[:10]
+    # ── Chart 3 — Top products by quantity ──
+
+    #------------- TOP PRODUCTS BY QUANTITY / REVENU -----------
+    # ---- Subcategory seperation logic ------
+    per_product_stats = list(
+        market_sale_items
+        .values(
+            'product_sku_snapshot',
+            'product_name_snapshot',
+            'unit_price_snapshot',
+            'product__subCategory__id',
+            'product__subCategory__name',
+        )
+        .annotate(
+            total_qty=Sum('quantity'),
+            total_revenue=Sum('line_total'),
+        )
+    )
+
+    # Step 2: split into standalone products vs subcategory buckets — same shape as home_page.
+    standalone_products = []
+    subcategory_groups = {}  # keyed by subcategory id
+
+    for row in per_product_stats:
+        sub_id = row['product__subCategory__id']
+
+        if sub_id is None:
+            standalone_products.append({
+                'type': 'product',
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+        else:
+            # Step 2a: first time seeing this subcategory, set up its bucket
+            if sub_id not in subcategory_groups:
+                subcategory_groups[sub_id] = {
+                    'type': 'subcategory',
+                    'name': row['product__subCategory__name'],
+                    'sku': sub_id,          # used as the expand/collapse key in the template
+                    'total_qty': 0,
+                    'total_revenue': 0.0,
+                    'children': [],
+                }
+            # Step 2b: fold this product's totals into the subcategory bucket
+            bucket = subcategory_groups[sub_id]
+            bucket['total_qty'] += row['total_qty']
+            bucket['total_revenue'] += float(row['total_revenue'])
+            bucket['children'].append({
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+
+    # Step 3: the combined list is what home_page calls combined_products — same idea.
+    combined_top_products = standalone_products + list(subcategory_groups.values())
+
+    # Step 4: produce two sorted views. We copy each subcategory dict so the two views can
+    #         sort their children by different metrics without stepping on each other
+    #         (both views share the same underlying dicts otherwise, and the second sort
+    #         of children would silently overwrite the first).
+    def _sorted_view(combined, sort_key):
+        result = []
+        for item in combined:
+            if item['type'] == 'subcategory':
+                item = {**item, 'children': sorted(item['children'], key=lambda c: c[sort_key], reverse=True)}
+            result.append(item)
+        return sorted(result, key=lambda x: x[sort_key], reverse=True)[:10]
+
+    top_products_grouped_by_qty = _sorted_view(combined_top_products, 'total_qty')
+    top_products_grouped_by_revenue = _sorted_view(combined_top_products, 'total_revenue')
+
+    # -------- Top product by perctage sold ----------------
+    #total quantiy by perctage sold - total sold of that product / snapshot of stock before{unless == 0} * 100
+    # ── Top products by percentage sold ──
+
+    # Step 1: get how many of each product sold at this market 
+    qty_sold_per_product = (
+        market_sale_items
+        .values('product_name_snapshot', 'product_sku_snapshot')
+        .annotate(total_qty=Sum('quantity'))
+    )
+    # Step 2: get the starting stock for every product snapshot taken at this market
+    stock_snapshots = StockSnapshot.objects.filter(market=market)
+    # Step 3: turn the snapshots into a lookup dict, keyed by SKU, so step 4 can find them fast
+    stock_at_start_by_sku = {
+        snapshot.product_sku_snapshot: snapshot.stock_at_start
+        for snapshot in stock_snapshots
+    }
+
+    # Step 4: for each product sold, calculate what percentage of its starting stock got sold
+    top_products_by_percentage_sold = []
+    for product in qty_sold_per_product:
+        sku = product['product_sku_snapshot']
+        starting_stock = stock_at_start_by_sku.get(sku)
+        # Step 4a: skip this product if we have no snapshot for it, or it started at 0 (avoid divide-by-zero)
+        if not starting_stock:
+            continue
+
+        percentage_sold = round((product['total_qty'] / starting_stock) * 100, 1)
+        top_products_by_percentage_sold.append({
+            'product_name': product['product_name_snapshot'],
+            'qty_sold': product['total_qty'],
+            'starting_stock': starting_stock,
+            'percentage_sold': percentage_sold,
+        })
+    # Step 5: sort so the highest percentage sold is first, and keep only the top 10
+    top_products_by_percentage_sold = sorted(
+        top_products_by_percentage_sold,
+        key=lambda p: p['percentage_sold'],
+        reverse=True
+    )[:10]
+
+    top_products = (
+        market_sale_items
+        .values('product_name_snapshot')
+        .annotate(total_qty=Sum('quantity'))
+        .order_by('-total_qty')[:10]
+    )
+
+    top_products_by_total_made = (
+        market_sale_items
+        .values('product_name_snapshot')
+        .annotate(total_revenue=Sum('line_total'))
+        .order_by('-total_revenue')[:10]
+    )
+    # ---------- Combined Inventory Sold list — grouped by subcategory, home_page style --------------
+    standalone_items = []
+    subcategory_item_groups = {}
+
+    for row in per_product_stats:
+        sub_id = row['product__subCategory__id']
+
+        if sub_id is None:
+            standalone_items.append({
+                'type': 'product',
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'unit_price': row['unit_price_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+        else:
+            if sub_id not in subcategory_item_groups:
+                subcategory_item_groups[sub_id] = {
+                    'type': 'subcategory',
+                    'name': row['product__subCategory__name'],
+                    'sku': sub_id,                               # used as unique collapse key
+                    'min_price': row['unit_price_snapshot'],     # cheapest child
+                    'total_qty': 0,
+                    'total_revenue': 0.0,
+                    'children': [],
+                }
+            bucket = subcategory_item_groups[sub_id]
+            bucket['total_qty'] += row['total_qty']
+            bucket['total_revenue'] += float(row['total_revenue'])
+            if row['unit_price_snapshot'] < bucket['min_price']:
+                bucket['min_price'] = row['unit_price_snapshot']
+            bucket['children'].append({
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'unit_price': row['unit_price_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+
+    # Sort children inside each group by qty (biggest colour first)
+    for group in subcategory_item_groups.values():
+        group['children'] = sorted(group['children'], key=lambda c: c['total_qty'], reverse=True)
+
+    # Full combined list, sorted by qty like items_sold was
+    combined_items_sold = sorted(
+        standalone_items + list(subcategory_item_groups.values()),
+        key=lambda x: x['total_qty'],
+        reverse=True,
+    )
+    # Step 5: pull the names and quantities out into two separate lists for Chart.js
     top_product_names = [p['product_name_snapshot'] for p in top_products]
     top_product_qtys = [p['total_qty'] for p in top_products]
+
+    # ------------ Records panel: search + sort ------------------
+
+    # Step 1: which table is being searched, and what was typed — both come from the URL
+    search_target = request.GET.get('target', 'history')   # 'history' or 'inventory'
+    search_query = request.GET.get('q', '').strip()
+
+    # Step 2: which column Sale History should be sorted by (defaults to newest sale first)
+    sale_sort = request.GET.get('sale_sort', '-created_at')
+    valid_sale_sort_fields = {'created_at', 'payment_method', 'subtotal', 'discount_amount', 'tip_amount', 'total'}
+    if sale_sort.lstrip('-') not in valid_sale_sort_fields:
+        sale_sort = '-created_at'
+
+    # Step 3: apply the sort — this is just an ORDER BY, so it's fine to do at the database level
+    sorted_sales = sales.order_by(sale_sort)
+
+    # Step 4: start with everything unfiltered — only the table matching search_target gets narrowed
+    filtered_sales = sorted_sales
+    filtered_items_sold = items_sold
+
+    if search_query and search_target == 'history':
+        # Step 4a: parse "10" as hour-only, or "10:05" as hour + minute
+        query = search_query.lower()
+        hour_query, _, minute_query = query.partition(':')
+        hour_query = hour_query.strip()
+        minute_query = minute_query.strip() if minute_query else None
+
+        # Step 4b: check each sale — time has to run in Python since it compares against the
+        # LOCAL 12-hour clock display, not the raw UTC value stored in the database
+        matching_sales = []
+        for sale in sorted_sales:
+            local_dt = timezone.localtime(sale.created_at)
+            sale_hour = int(local_dt.strftime('%I'))    # 1–12
+            sale_minute = int(local_dt.strftime('%M'))  # 0–59
+
+            is_time_match = (
+                hour_query.isdigit()
+                and int(hour_query) == sale_hour
+                and (minute_query is None or (minute_query.isdigit() and int(minute_query) == sale_minute))
+            )
+            is_payment_match = query in sale.get_payment_method_display().lower()
+            is_id_match = query.lstrip('#') == str(sale.id)
+
+            if is_time_match or is_payment_match or is_id_match:
+                matching_sales.append(sale)
+        filtered_sales = matching_sales
+
+    elif search_query and search_target == 'inventory':
+        searches = search_query.lower().split()
+
+        def _matches_all_words(name, sku, sub_name=''):
+            # Every search word must appear in at least one of the three fields (AND across words, OR across fields)
+            name_lower = (name or '').lower()
+            sku_lower = str(sku or '').lower()
+            sub_lower = (sub_name or '').lower()
+            for word in searches:
+                if word not in name_lower and word not in sku_lower and word not in sub_lower:
+                    return False
+            return True
+
+        filtered_combined = []
+        for item in combined_items_sold:
+            if item['type'] == 'product':
+                if _matches_all_words(item['name'], item['sku']):
+                    filtered_combined.append(item)
+            else:
+                # Subcategory: if the group name matches, keep all children.
+                # Otherwise check each child — a child inherits its parent's subcategory name for matching.
+                if _matches_all_words('', '', item['name']):
+                    filtered_combined.append(item)
+                else:
+                    matching_children = [
+                        child for child in item['children']
+                        if _matches_all_words(child['name'], child['sku'], item['name'])
+                    ]
+                    if matching_children:
+                        filtered_combined.append({**item, 'children': matching_children})
+
+        filtered_combined_items_sold = filtered_combined
+    else:
+        filtered_combined_items_sold = combined_items_sold
+    base_query = request.GET.copy()
+    base_query.pop('sale_sort', None)
+    base_query_string = base_query.urlencode()
+
 
     return render(request, 'inventory/market_detail.html', {
         'market': market,
@@ -908,7 +1223,20 @@ def market_detail(request, market_id):
         'category_stats': category_stats,
         'hourly_stats': hourly_stats,
         'colour_stats': colour_stats,
+        'top_products_by_total_made': top_products_by_total_made,
+        'top_products_by_percentage_sold': top_products_by_percentage_sold,
+        'search_query':          search_query,
+        'search_query':        search_query,
+        'search_target':       search_target,
+        'sale_sort':           sale_sort,
+        'base_query':          base_query_string,
+        'filtered_sales':      filtered_sales,
+        'filtered_items_sold': filtered_items_sold,
+        'top_products_grouped_by_qty': top_products_grouped_by_qty,
+    'top_products_grouped_by_revenue': top_products_grouped_by_revenue,
+    'filtered_combined_items_sold': filtered_combined_items_sold,
     })
+
 @login_required
 def sale_edit(request, sale_id):
     sale = get_object_or_404(Sale, id=sale_id, market__user=request.user)
@@ -1007,14 +1335,14 @@ def sale_edit(request, sale_id):
     })
 @login_required
 def market_dashboard(request):
-    from collections import defaultdict
-
     active_market = Market.objects.filter(user=request.user, is_active=True).first()
 
-    # ── Past markets with per-market totals ──────────────────────────────────
-    past_markets = Market.objects.filter(
-        user=request.user, is_active=False
-    ).order_by('-ended_at').annotate(
+    # ── Past markets with per-market totals ──
+    # Step 1: get every market this user has already ended, most recently ended first
+    past_markets = Market.objects.filter(user=request.user, is_active=False).order_by('-ended_at')
+    # Step 2: attach each market's total revenue and sale count directly onto the queryset
+    #         Coalesce swaps in 0 whenever a market has zero sales (Sum alone would give None there)
+    past_markets = past_markets.annotate(
         total_revenue=Coalesce(
             Sum('sales__total'),
             Value(0),
@@ -1022,118 +1350,257 @@ def market_dashboard(request):
         ),
         transaction_count=Count('sales'),
     )
-
-    all_past = list(past_markets)          # evaluated once, reused below
+    # Step 3: run the query once, keep it as a list — market_count below reuses this instead of a second query
+    all_past = list(past_markets)
     market_count = len(all_past)
 
-    # ── Global aggregate KPIs ────────────────────────────────────────────────
+    # ── Global aggregate  (across every past market) ──
+    # Step 1: every sale that belongs to one of this user's past (ended) markets
     all_sales = Sale.objects.filter(market__user=request.user, market__is_active=False)
-
-    total_revenue_all   = all_sales.aggregate(t=Sum('total'))['t'] or 0
-    total_tips_all      = all_sales.aggregate(t=Sum('tip_amount'))['t'] or 0
+    # Step 2: total revenue, tips, and how many sales happened, across all of those
+    total_revenue_all = all_sales.aggregate(t=Sum('total'))['t'] or 0
+    total_tips_all = all_sales.aggregate(t=Sum('tip_amount'))['t'] or 0
     total_transactions_all = all_sales.count()
 
+    # Step 3: total expenses logged across all of this user's markets
     total_expenses_all = MarketExpense.objects.filter(
-        market__user=request.user
+        market__user=request.user,
+        market__is_active=False,
     ).aggregate(t=Sum('amount'))['t'] or 0
-
+    # Step 4: overall profit = revenue minus expenses
     total_profit_all = round(float(total_revenue_all) - float(total_expenses_all), 2)
+    # Step 5: per-market and per-sale averages, guarded against divide-by-zero
+    avg_market_revenue = round(float(total_revenue_all) / market_count, 2) if market_count else 0
+    avg_market_profit = round(float(total_profit_all) / market_count, 2) if market_count else 0
+    avg_market_transactions = round(total_transactions_all / market_count, 2) if market_count else 0
+    avg_sale_value = round(float(total_revenue_all) / total_transactions_all, 2) if total_transactions_all else 0
 
-    avg_market_revenue     = round(float(total_revenue_all)      / market_count, 2) if market_count else 0
-    avg_market_profit      = round(float(total_profit_all)       / market_count, 2) if market_count else 0
-    avg_market_transactions = round(total_transactions_all       / market_count, 2) if market_count else 0
-    avg_sale_value         = round(float(total_revenue_all) / total_transactions_all, 2) if total_transactions_all else 0
 
-    # ── Best sellers (quantity mode only — clean, no broken percentage logic) ─
-    best_sellers = list(
-        SaleItem.objects.filter(
-            sale__market__user=request.user,
-            sale__market__is_active=False,
-        ).values('product_sku_snapshot', 'product_name_snapshot').annotate(
-            total_sold=Sum('quantity'),
+    # ── Best sellers grouped by subcategory — same pattern as market_detail ──
+    # Difference from market_detail: source spans EVERY ended market, not just one.
+
+    # Step 1: per-product totals across all past markets, tagged with subcategory info
+    per_product_stats_all = list(
+        SaleItem.objects
+        .filter(sale__market__user=request.user, sale__market__is_active=False)
+        .values(
+            'product_sku_snapshot',
+            'product_name_snapshot',
+            'product__subCategory__id',
+            'product__subCategory__name',
+        )
+        .annotate(
+            total_qty=Sum('quantity'),
             total_revenue=Sum('line_total'),
-        ).order_by('-total_sold')
+        )
     )
 
-    # ── Customer mix across all markets ──────────────────────────────────────
-    customer_breakdown = all_sales.values('customer_type').annotate(
-        count=Count('id'),
-        total_spent=Sum('total'),
-    ).order_by('-count')
+    # Step 2: split into standalone products vs subcategory buckets
+    standalone_bs = []
+    subcategory_bs_groups = {}  # keyed by subcategory id
 
-    # ── Category stats across all markets ────────────────────────────────────
-    category_stats = Category.objects.filter(
-        user=request.user
-    ).annotate(
-        total_qty=Sum(
-            'products__sale_items__quantity',
-            filter=Q(
-                products__sale_items__sale__market__user=request.user,
-                products__sale_items__sale__market__is_active=False,
-            )
-        ),
-        total_revenue=Sum(
-            F('products__sale_items__line_total'),
-            filter=Q(
-                products__sale_items__sale__market__user=request.user,
-                products__sale_items__sale__market__is_active=False,
-            )
+    for row in per_product_stats_all:
+        sub_id = row['product__subCategory__id']
+
+        if sub_id is None:
+            standalone_bs.append({
+                'type': 'product',
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+        else:
+            if sub_id not in subcategory_bs_groups:
+                subcategory_bs_groups[sub_id] = {
+                    'type': 'subcategory',
+                    'name': row['product__subCategory__name'],
+                    'sku': sub_id,
+                    'total_qty': 0,
+                    'total_revenue': 0.0,
+                    'children': [],
+                }
+            bucket = subcategory_bs_groups[sub_id]
+            bucket['total_qty'] += row['total_qty']
+            bucket['total_revenue'] += float(row['total_revenue'])
+            bucket['children'].append({
+                'name': row['product_name_snapshot'],
+                'sku': row['product_sku_snapshot'],
+                'total_qty': row['total_qty'],
+                'total_revenue': float(row['total_revenue']),
+            })
+
+    combined_best_sellers = standalone_bs + list(subcategory_bs_groups.values())
+
+    # Step 3: two sorted views. Each subcategory dict is copied so the two views
+    #         can sort their children by different metrics without stepping on each other
+    #         (both views share the same underlying dicts otherwise, and the second sort
+    #         of children would silently overwrite the first).
+    def _sorted_bs_view(combined, sort_key):
+        result = []
+        for item in combined:
+            if item['type'] == 'subcategory':
+                item = {**item, 'children': sorted(item['children'], key=lambda c: c[sort_key], reverse=True)}
+            result.append(item)
+        return sorted(result, key=lambda x: x[sort_key], reverse=True)[:10]
+
+    best_sellers_grouped_by_qty = _sorted_bs_view(combined_best_sellers, 'total_qty')
+    best_sellers_grouped_by_revenue = _sorted_bs_view(combined_best_sellers, 'total_revenue')
+    # ── Best sellers by percentage sold — averaged across every market it appeared in ──
+    # Goal: work out what % of starting stock sold AT EACH market a product appeared in,
+    #       then average those percentages — so one lucky/unlucky market doesn't skew things,
+    #       and a slow-seller isn't punished just because it took many markets to finally sell out.
+
+    # Step 1: every stock snapshot from this user's past markets — one row per (market, product)
+    past_snapshots = StockSnapshot.objects.filter(
+        market__user=request.user,
+        market__is_active=False,
+    ).values('market_id', 'product_sku_snapshot', 'product_name_snapshot', 'stock_at_start')
+
+    # Step 2: quantity sold per (market, product) — same grouping shape as the snapshots above
+    qty_sold_per_market_product = (
+        SaleItem.objects
+        .filter(sale__market__user=request.user, sale__market__is_active=False)
+        .values('sale__market_id', 'product_sku_snapshot')
+        .annotate(total_qty=Sum('quantity'))
+    )
+    # Step 3: turn that into a lookup dict keyed by (market_id, sku), so step 4 can find it fast
+    qty_sold_lookup = {
+        (row['sale__market_id'], row['product_sku_snapshot']): row['total_qty']
+        for row in qty_sold_per_market_product
+    }
+
+    # Step 4: walk through every snapshot and bucket its numbers by product (sku)
+    product_market_data = defaultdict(lambda: {'name': '', 'percentages': [], 'stock_totals': [], 'qty_totals': []})
+    for snapshot in past_snapshots:
+        sku = snapshot['product_sku_snapshot']
+        stock_at_start = snapshot['stock_at_start']
+
+        # Step 4a: skip markets where this product started with 0 stock (can't divide by 0)
+        if not stock_at_start:
+            continue
+
+        qty_sold_this_market = qty_sold_lookup.get((snapshot['market_id'], sku), 0)
+        this_market_percentage = (qty_sold_this_market / stock_at_start) * 100
+
+        bucket = product_market_data[sku]
+        bucket['name'] = snapshot['product_name_snapshot']
+        bucket['percentages'].append(this_market_percentage)
+        bucket['stock_totals'].append(stock_at_start)
+        bucket['qty_totals'].append(qty_sold_this_market)
+
+    # Step 5: average each product's numbers across however many markets it appeared in
+    best_sellers_by_percentage_sold = []
+    for sku, data in product_market_data.items():
+        markets_counted = len(data['percentages'])
+        best_sellers_by_percentage_sold.append({
+            'product_name':   data['name'],
+            'percentage_sold': round(sum(data['percentages']) / markets_counted, 1),
+            'avg_stock_made':  round(sum(data['stock_totals']) / markets_counted, 1),
+            'avg_qty_sold':    round(sum(data['qty_totals']) / markets_counted, 1),
+            'markets_counted': markets_counted,
+        })
+
+    # Step 6: order so the highest average percentage is first, keep the top 10
+    best_sellers_by_percentage_sold = sorted(
+        best_sellers_by_percentage_sold,
+        key=lambda p: p['percentage_sold'],
+        reverse=True
+    )[:10]
+    # ── Customer mix across all past markets ──
+    # Step 1: group all_sales by customer_type
+    # Step 2: count sales and total spend per type
+    # Step 3: order so the most common type is first
+    customer_breakdown = (
+        all_sales
+        .values('customer_type')
+        .annotate(count=Count('id'), total_spent=Sum('total'))
+        .order_by('-count')
+    )
+
+    # ── Category stats across all past markets ──
+    # Step 1: build the "belongs to one of this user's ended markets" condition once, reused below
+    # Step 2: for every category, total the quantity + revenue from sale items tied to those markets
+    # Step 3: drop categories that had no sales at all
+    # Step 4: order so the best-selling category is first
+    category_stats = (
+        Category.objects
+        .filter(user=request.user)
+        .annotate(
+            total_qty=Sum('products__sale_items__quantity', filter=Q(products__sale_items__sale__market__user=request.user,products__sale_items__sale__market__is_active=False,)),
+            total_revenue=Sum('products__sale_items__line_total', filter=Q(products__sale_items__sale__market__user=request.user,products__sale_items__sale__market__is_active=False,)),
         )
-    ).filter(total_qty__isnull=False).order_by('-total_qty')
+        .filter(total_qty__isnull=False)
+        .order_by('-total_qty')
+    )
 
-    # ── Colour stats across all markets ──────────────────────────────────────
+    # ── Colour stats across all past markets ──
     colours = ['pink', 'purple', 'green', 'blue', 'yellow']
     colour_stats = []
     for colour in colours:
-        qs = SaleItem.objects.filter(
+        # Step 1: sale items from past markets whose product name mentions this colour
+        colour_items = SaleItem.objects.filter(
             sale__market__user=request.user,
             sale__market__is_active=False,
             product_name_snapshot__icontains=colour,
         )
-        qty     = qs.aggregate(t=Sum('quantity'))['t'] or 0
-        revenue = qs.aggregate(t=Sum('line_total'))['t'] or 0
-        colour_stats.append({'colour': colour.title(), 'qty': qty, 'revenue': revenue})
+        # Step 2: total quantity AND revenue in one query instead of two
+        colour_totals = colour_items.aggregate(qty=Sum('quantity'), revenue=Sum('line_total'))
+        colour_stats.append({
+            'colour': colour.title(),
+            'qty': colour_totals['qty'] or 0,
+            'revenue': colour_totals['revenue'] or 0,
+        })
+    # Step 3: order so the most-sold colour is first
     colour_stats = sorted(colour_stats, key=lambda x: x['qty'], reverse=True)
 
-    # ── Average hourly activity across all past markets ───────────────────────
-    # Step 1: collect (revenue, items_sold) per hour-slot per market
-    hour_market_revenue = defaultdict(lambda: defaultdict(float))
-    hour_market_items   = defaultdict(lambda: defaultdict(int))
+    # ── Average hourly activity across all past markets ──
+    # Goal: for each hour slot (9 AM, 10 AM, ...), show the AVERAGE revenue/items per market
+    #       during that hour — not the total, since not every market had activity every hour.
 
+    # Step 1: pull every sale from past markets, with its items preloaded
     all_sales_prefetched = Sale.objects.filter(
         market__user=request.user,
         market__is_active=False,
     ).prefetch_related('items')
 
-    market_ids_seen = defaultdict(set)   # hour -> set of market_ids that had activity that hour
+    # Step 2: empty per-hour, per-market buckets (outer key = hour, inner key = market id)
+    hour_market_revenue = defaultdict(lambda: defaultdict(float))
+    hour_market_items = defaultdict(lambda: defaultdict(int))
+    # Step 3: track which markets actually had a sale in each hour, so we know what to divide by later
+    market_ids_seen_per_hour = defaultdict(set)
 
+    # Step 4: walk through every sale once, filing it into the right hour + market bucket
     for sale in all_sales_prefetched:
-        local_dt = timezone.localtime(sale.created_at)          # ← converts, but...
         hour = timezone.localtime(sale.created_at).strftime('%I %p').lstrip('0') or '12 AM'
-        mid  = sale.market_id
-        hour_market_revenue[hour][mid] += float(sale.total)
-        market_ids_seen[hour].add(mid)
+        market_id = sale.market_id
+
+        hour_market_revenue[hour][market_id] += float(sale.total)
+        market_ids_seen_per_hour[hour].add(market_id)
+
         for item in sale.items.all():
-            hour_market_items[hour][mid] += item.quantity
+            hour_market_items[hour][market_id] += item.quantity
 
-    # Step 2: average across however many markets had sales in that hour
-    def _hour_sort_key(h):
-        parts = h.split()
-        num = int(parts[0])
-        meridiem = parts[1] if len(parts) > 1 else 'AM'
+    # Step 5: sort hours into real clock order (alphabetical would put "10 AM" before "9 AM")
+    def _hour_sort_key(hour_label):
+        number, meridiem = hour_label.split()
+        number = int(number)
         if meridiem == 'AM':
-            return 0 if num == 12 else num        # 12 AM = midnight = 0
-        else:
-            return 12 if num == 12 else num + 12  # 12 PM = noon = 12, 1 PM = 13, etc.
+            return 0 if number == 12 else number
+        return 12 if number == 12 else number + 12
 
-    all_hours = sorted(set(hour_market_revenue.keys()), key=_hour_sort_key)
+    all_hours = sorted(hour_market_revenue.keys(), key=_hour_sort_key)
+
+    # Step 6: for each hour, average its totals across however many markets had activity that hour
     avg_hourly_revenue = []
-    avg_hourly_items   = []
+    avg_hourly_items = []
     for hour in all_hours:
-        mids = market_ids_seen[hour]
-        n    = len(mids)
-        avg_hourly_revenue.append(round(sum(hour_market_revenue[hour].values()) / n, 2))
-        avg_hourly_items.append(round(sum(hour_market_items[hour].values())   / n, 1))
+        markets_active_this_hour = len(market_ids_seen_per_hour[hour])
+        total_revenue_this_hour = sum(hour_market_revenue[hour].values())
+        total_items_this_hour = sum(hour_market_items[hour].values())
+
+        avg_hourly_revenue.append(round(total_revenue_this_hour / markets_active_this_hour, 2))
+        avg_hourly_items.append(round(total_items_this_hour / markets_active_this_hour, 1))
 
     return render(request, 'inventory/market_dashboard.html', {
         # nav
@@ -1148,7 +1615,9 @@ def market_dashboard(request):
         'total_revenue_all':       total_revenue_all,
         'total_profit_all':        total_profit_all,
         # tables / charts
-        'best_sellers':        best_sellers,
+        'best_sellers_by_percentage_sold':  best_sellers_by_percentage_sold,
+        'best_sellers_grouped_by_qty': best_sellers_grouped_by_qty,
+'best_sellers_grouped_by_revenue': best_sellers_grouped_by_revenue,
         'customer_breakdown':  customer_breakdown,
         'category_stats':      category_stats,
         'colour_stats':        colour_stats,
@@ -1157,6 +1626,7 @@ def market_dashboard(request):
         'avg_hour_revenue':  json.dumps(avg_hourly_revenue),
         'avg_hour_items':    json.dumps(avg_hourly_items),
     })
+
 # =============================
 #  Login Page View 
 # ===========================
