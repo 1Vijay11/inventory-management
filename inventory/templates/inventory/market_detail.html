@@ -413,7 +413,7 @@
                                         </ul>
                                     </div>
                                 </th>
-                                <th class="num">
+                                <th class="num  d-none d-sm-table-cell">
                                     <div class="dropdown">
                                         <button class="th-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static">
                                             Subtotal
@@ -466,20 +466,19 @@
                         </thead>
                         <tbody>
                             {% for sale in filtered_sales %}
-                            <tr data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">
-                                <td>{{ sale.created_at|date:"g:i A" }}</td>
-                                <td><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
-                                <td class="num">${{ sale.subtotal }}</td>
-                                <td class="num d-none d-sm-table-cell">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                <td class="num d-none d-sm-table-cell">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
-                                <td class="num d-none d-sm-table-cell"><strong>${{ sale.total }}</strong></td>
-                                <td class="d-table-cell d-sm-none num">
+                            <tr >
+                                <td data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">{{ sale.created_at|date:"g:i A" }}</td>
+                                <td data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}"><span class="tag tag--{{ sale.payment_method }}">{{ sale.get_payment_method_display }}</span></td>
+                                <td class="num  d-none d-sm-table-cell "data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">${{ sale.subtotal }}</td>
+                                <td class="num d-none d-sm-table-cell"data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">{% if sale.discount_amount > 0 %}<span class="money-neg">-${{ sale.discount_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num d-none d-sm-table-cell"data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">{% if sale.tip_amount > 0 %}<span class="money-pos">+${{ sale.tip_amount }}</span>{% else %}<span class="money-muted">—</span>{% endif %}</td>
+                                <td class="num d-none d-sm-table-cell"data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}"><strong>${{ sale.total }}</strong></td>
+                                <td class="d-table-cell d-sm-none num"data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">
                                     <strong>${{ sale.total }}</strong>
                                     {% if sale.discount_amount > 0 %}<div><span class="money-neg">-${{ sale.discount_amount }}</span></div>{% endif %}
                                     {% if sale.tip_amount > 0 %}<div><span class="money-pos">+${{ sale.tip_amount }}</span></div>{% endif %}
                                 </td>
                                 <td class="num">
-                                    <button class="d-none d-sm-table-cell btn-mm btn-mm--ghost btn-mm--sm" data-bs-toggle="collapse" data-bs-target="#sale-items-{{ sale.id }}">Items</button>
                                     {% if market.is_active %}<a href="{% url 'sale_edit' sale.id %}" class="btn-mm btn-mm--ghost btn-mm--sm">Edit</a>{% endif %}
                                 </td>
                             </tr>
@@ -487,12 +486,12 @@
                                 <td class="sale-detail-cell" colspan="8">
                                     <div class="sale-detail-inner">
                                         <table class="data-table">
-                                            <thead><tr><th>Product</th><th>SKU</th><th class="num">Unit Price</th><th class="num">Qty</th><th class="num">Line Total</th></tr></thead>
+                                            <thead><tr><th>Product</th><th class=" d-none d-sm-table-cell">SKU</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Line Total</th></tr></thead>
                                             <tbody>
                                                 {% for item in sale.items.all %}
                                                 <tr>
                                                     <td>{{ item.product_name_snapshot }}</td>
-                                                    <td><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
+                                                    <td class=" d-none d-sm-table-cell"><span class="sku-badge">{{ item.product_sku_snapshot }}</span></td>
                                                     <td class="num">${{ item.unit_price_snapshot }}</td>
                                                     <td class="num">{{ item.quantity }}</td>
                                                     <td class="num">${{ item.line_total }}</td>

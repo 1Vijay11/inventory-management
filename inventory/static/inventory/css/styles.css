@@ -1001,8 +1001,9 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     border: 1px solid var(--border-mid);
     border-radius: 12px;
     padding: 0.35rem;
-    width: fit-content;
     flex-wrap: wrap;
+    justify-content: space-evenly;  
+    max-width: 680px;
 }
 
 .add-tab {
@@ -1295,6 +1296,13 @@ nav.inventory-navbar .nav-btn-ghost:hover {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.4rem;
+}
+
+/* Mobile responsive override */
+@media (max-width: 768px) {
+    .existing-list__items {
+        grid-template-columns: 1fr;
+    }
 }
 
 .existing-item {
@@ -2897,7 +2905,7 @@ login Page
 }
 /* Quantity input inside the edit-sale items table */
 .se-qty-input {
-    width: 70px;
+    width: 50px;
     padding: 0.35rem 0.5rem;
     text-align: center;
     display: inline-block;

@@ -6,7 +6,7 @@ from django.contrib.auth import login  # log users in after signup/login
 from django.contrib.auth.decorators import login_required  # restrict views to authenticated users
 from django.contrib import messages  # display success/error messages to users
 from django.utils import timezone # auto add curent date on market start
-
+from urllib.parse import urlencode # For saving the url across pages 
 # Database queries & ORM tools
 from django.db.models.functions import Coalesce
 from django.db.models import Q, Max, Sum, F, Min, Count, Value, DecimalField
@@ -23,6 +23,17 @@ import io  # handle in-memory file operations (e.g., CSV export)
 import json  # parse/generate JSON data
 from django.urls import reverse
 
+# GET parameter names that count as inventory filters.
+# Persisted to session on form submit, restored when returning to a bare URL.
+INVENTORY_FILTER_KEYS = (
+    'search',
+    'sort_by_category',
+    'show_zero_stock',
+    'show_discontinued',
+    'filter_state',
+    'sort',
+    'form_submitted',
+)
 @login_required # this will be for changeing the base url redirect depending if theres a market - if no market then redirect to normal inventory page if market then go to current market fro easy sale tracking while current market active
 def root_redirect(request):
     active = Market.objects.filter(user=request.user, is_active=True).first()
@@ -32,11 +43,28 @@ def root_redirect(request):
 
 @login_required
 def home_page(request):
+    # ── Filter persistence via Django session ──
+
+    # If the filter form was submitted, save the current filters to session
+    if 'form_submitted' in request.GET:
+        saved_filters = {}
+        for key in INVENTORY_FILTER_KEYS:
+            values = request.GET.getlist(key)
+            if values:
+                saved_filters[key] = values
+        request.session['inventory_filters'] = saved_filters
+
+    # Otherwise, if URL has no filters and we have saved ones, redirect to apply them
+    else:
+        url_has_filters = any(key in request.GET for key in INVENTORY_FILTER_KEYS)
+        saved_filters = request.session.get('inventory_filters')
+        if saved_filters and not url_has_filters:
+            return redirect(f"{request.path}?{urlencode(saved_filters, doseq=True)}")
+
     #|||||||||||||| Defining tables ||||||||||||||
     products = Product.objects.filter(user=request.user)
     categorys = Category.objects.filter(user=request.user)
     sub_categorys = SubCategory.objects.filter(user=request.user)
-
 
     #|||||||||||||| search logic ||||||||||||||
     searches = request.GET.get('search', '').strip().split()
@@ -189,9 +217,22 @@ def change_stock(request, sku):
         data = json.loads(request.body)
         action = data.get("action")
         product = Product.objects.get(sku=sku, user=request.user)    
+        active_market = Market.objects.filter(user=request.user, is_active=True).first()
 
         if action == "add":
             product.stock_quantity += 1
+            if active_market:
+                snapshot, _ = StockSnapshot.objects.get_or_create(
+                    market=active_market,
+                    product=product,
+                    defaults={
+                        'product_name_snapshot': product.name,
+                        'product_sku_snapshot': product.sku,
+                        'stock_at_start': 0,
+                    }
+                )
+            snapshot.stock_at_start += 1
+            snapshot.save()
         elif action == "minus":
             if product.stock_quantity <= 0:
                 return JsonResponse({"error": "Cannot go below 0"}, status=400)

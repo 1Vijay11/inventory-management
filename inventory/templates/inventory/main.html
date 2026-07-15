@@ -460,58 +460,6 @@
 
         });
     }, 0); 
-// ============================================================
-//  Filter state persistence across edit page
-// ============================================================
-const FILTER_STATE_KEY = 'inventoryFilterState';
-
-// ── On page load: restore filters if we have saved state and URL is bare ──
-(function restoreFilterState() {
-    const saved = sessionStorage.getItem(FILTER_STATE_KEY);
-    if (!saved) return;
-
-    const state = JSON.parse(saved);
-    const currentQuery = window.location.search;
-
-    // Only restore if user landed here with a bare URL (came back from edit).
-    // If they have their own query params, respect that.
-    if (currentQuery === '' && state.query) {
-        window.location.replace('/?' + state.query);
-        return;
-    }
-
-    // Already on the filtered URL → re-expand the subcategories
-    if (state.expandedSubcategories && state.expandedSubcategories.length) {
-        state.expandedSubcategories.forEach(sku => {
-            const children = document.querySelectorAll(`.collapse-sub-${sku}`);
-            const trigger = document.querySelector(`[data-bs-target=".collapse-sub-${sku}"]`);
-            children.forEach(el => el.classList.add('show'));
-            if (trigger) trigger.setAttribute('aria-expanded', 'true');
-        });
-    }
-})();
-
-// ── Before navigating to edit: save current filter state ──
-document.querySelectorAll('.product-link').forEach(link => {
-    link.addEventListener('click', () => {
-        const query = window.location.search.replace(/^\?/, '');
-
-        const expandedSubcategories = Array.from(
-            document.querySelectorAll('.subcategory-row[aria-expanded="true"]')
-        ).map(row => row.getAttribute('data-bs-target')?.replace('.collapse-sub-', ''))
-         .filter(Boolean);
-
-        sessionStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
-            query: query,
-            expandedSubcategories: expandedSubcategories
-        }));
-    });
-});
-
-// ── If user manually changes filters, clear saved state so it doesn't fight them ──
-document.querySelector('.filter-bar__form')?.addEventListener('submit', () => {
-    sessionStorage.removeItem(FILTER_STATE_KEY);
-});
 // FOLLOWING FUNCCTIONS TO PREVENT REFRESH ON Stock CHANGE
 
 function recalcDashboard() {
