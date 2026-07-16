@@ -231,8 +231,8 @@ def change_stock(request, sku):
                         'stock_at_start': 0,
                     }
                 )
-            snapshot.stock_at_start += 1
-            snapshot.save()
+                snapshot.stock_at_start += 1
+                snapshot.save()
         elif action == "minus":
             if product.stock_quantity <= 0:
                 return JsonResponse({"error": "Cannot go below 0"}, status=400)
